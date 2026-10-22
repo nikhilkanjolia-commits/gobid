@@ -26,7 +26,7 @@ your site    GET /api/tenders?q=…  →  search_tenders() in Supabase  →  JSO
 ## Switch it on (about 15 minutes)
 
 1. **Create the database.** Sign up at https://supabase.com, then **New project** (free plan). Note the database password somewhere safe.
-2. **Create the tables.** In the project: **SQL Editor → New query**, paste all of `supabase/schema.sql`, then **Run**.
+2. **Create the tables.** In the project: **SQL Editor → New query**, paste all of `supabase/schema.sql`, then **Run**. Then do the same with `supabase/002_categories_filters.sql`, which adds categories, editable collector keywords, status tabs and filter counts. Supabase warns about a "destructive operation": that's only the old search function being replaced.
 3. **Copy two values:** **Project Settings → API**, the **Project URL** and the **service_role** key (secret: never in chat, code or GitHub).
 4. **Set up the site, locally:** open `.env.local` and fill in `SUPABASE_URL=` and `SUPABASE_SERVICE_ROLE_KEY=`. Also set `GEM_COLLECT_SECRET=` to any long random value.
    **On Vercel:** **Project → Settings → Environment Variables**, add the same three (plus `GEMINI_API_KEY` / `GEMINI_MODEL` for tender analysis), then redeploy.
@@ -61,8 +61,21 @@ Reply:
 ```
 Errors: `400` for a bad parameter (the message names it); `503` if Supabase isn't set up yet; `502` if Supabase fails.
 
+## The website
+- **Tenders (`/`):**
+  - search and status tabs with counts: Live, Closing soon (≤ 3 days), New today, Closed, All
+  - filter panel: category, keyword, ministry, bid or reverse auction, high value, closing dates
+  - sort, cards with "days left", **View on GeM** and **Analyze**
+  - every choice is kept in the page address
+- **Analyze a tender (`/analyze`):** opened from a card, it shows that bid's GeM document link to download and upload.
+- **Settings (`/settings`):**
+  - *My preferences*: the filters Tenders opens with, saved in the browser.
+  - *What GoBid collects from GeM*: add, switch off or remove keywords and categories. Changes need `ADMIN_PASSCODE` (in `.env.local` and Vercel).
+
 ## Changing what's collected
-Edit `GEM_KEYWORDS` or `GEM_PAGES_PER_KEYWORD` in `n8n/code/gem.js`, run `npm test` and `npm run build:n8n`, then re-import the collector in n8n.
+On **Settings → What GoBid collects from GeM** (admin passcode), or by editing the `search_keywords` table in Supabase. The next hourly run uses the change. At most 40 keywords can be on, which keeps one run under about 3 minutes. The list in `GEM_KEYWORDS` (`n8n/code/gem.js`) is only used if that table is missing.
+
+Other API routes: `GET /api/tenders/facets?q=&tab=` (counts), `GET/POST/DELETE /api/keywords` (collector keywords; POST and DELETE need the header `x-gobid-admin`).
 
 ## Known limits
 - **GeM's keyword search is loose.** "MCB" also finds bids where MCB is one item among paint or AC units. `matched_keywords` shows why a bid was found.

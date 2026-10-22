@@ -13,7 +13,7 @@ const TABS = [
 export function NavTabs() {
   const path = usePathname();
   return (
-    <nav className="-mb-px flex gap-1 overflow-x-auto" aria-label="Main">
+    <nav className="no-scrollbar -mb-px flex gap-1 overflow-x-auto" aria-label="Main">
       {TABS.map((t) => {
         const active = t.href === "/" ? path === "/" : path.startsWith(t.href);
         return (

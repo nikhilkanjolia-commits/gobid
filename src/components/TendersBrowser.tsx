@@ -245,7 +245,7 @@ export function TendersBrowser() {
         <button className="rounded bg-blue-700 px-5 py-2 font-semibold text-white hover:bg-blue-800">Search</button>
       </form>
 
-      <nav className="mt-4 flex gap-1 overflow-x-auto border-b" aria-label="Tender status">
+      <nav className="no-scrollbar mt-4 flex gap-1 overflow-x-auto border-b" aria-label="Tender status">
         {TABS.map((t) => (
           <button
             key={t}

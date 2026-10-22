@@ -12,6 +12,14 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* Tab rows scroll sideways on small screens without showing a scrollbar. */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
