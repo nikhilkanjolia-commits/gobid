@@ -1,7 +1,8 @@
 # GeM tender search: how it works and how to switch it on
 
 ```
-every hour   n8n "GoBid GeM collector"
+every hour   n8n "GoBid GeM collector"  →  POST https://<your site>/api/gem/collect  (header x-gobid-secret)
+             the route, running on Vercel in Mumbai (bom1):
              1. opens bidplus.gem.gov.in/all-bids (public page, no login)
              2. searches 18 electrical/solar keywords, newest bids first, 2 pages each, 2 s apart (37 requests)
              3. merges the results (one row per bid, with the keywords that found it)
@@ -9,7 +10,10 @@ every hour   n8n "GoBid GeM collector"
 your site    GET /api/tenders?q=…  →  search_tenders() in Supabase  →  JSON results
 ```
 
-- **Plain-code logic:** [`n8n/code/gem.js`](../n8n/code/gem.js). It's tested in `tests/gem.test.ts` against a real GeM reply, and the n8n Code nodes run this exact file.
+**Why the GeM requests run on Vercel, not in n8n:** GeM refuses connections from servers outside India. A test from n8n Cloud failed with "The service refused the connection" (22 Oct 2026), while the same request from India worked. `vercel.json` therefore pins the site's functions to Mumbai (`bom1`), next to the Supabase database, and n8n only triggers the run.
+
+- **Plain-code logic:** [`n8n/code/gem.js`](../n8n/code/gem.js), tested in `tests/gem.test.ts` against a real GeM reply. It's run by [`src/lib/gemCollector.ts`](../src/lib/gemCollector.ts) (the collect route) and by `scripts/gem-collect.mjs` (from your PC).
+- **Collect route:** [`src/app/api/gem/collect/route.ts`](../src/app/api/gem/collect/route.ts). `?probe=1` only checks that GeM answers from the server.
 - **Database:** [`supabase/schema.sql`](../supabase/schema.sql), tested on a real Postgres in `tests/schema.test.ts`.
 - **Search API:** [`src/app/api/tenders/route.ts`](../src/app/api/tenders/route.ts).
 
@@ -24,15 +28,15 @@ your site    GET /api/tenders?q=…  →  search_tenders() in Supabase  →  JSO
 1. **Create the database.** Sign up at https://supabase.com, then **New project** (free plan). Note the database password somewhere safe.
 2. **Create the tables.** In the project: **SQL Editor → New query**, paste all of `supabase/schema.sql`, then **Run**.
 3. **Copy two values:** **Project Settings → API**, the **Project URL** and the **service_role** key (secret: never in chat, code or GitHub).
-4. **Set up the site, locally:** open `.env.local` and fill in `SUPABASE_URL=` and `SUPABASE_SERVICE_ROLE_KEY=`.
-   **On Vercel:** **Project → Settings → Environment Variables**, add the same two, then redeploy.
-5. **Fill the database once from your PC:** `npm run gem:collect` (about 75 s). It prints e.g. `Saved: { received: 260, new: 260, updated: 0 }`.
+4. **Set up the site, locally:** open `.env.local` and fill in `SUPABASE_URL=` and `SUPABASE_SERVICE_ROLE_KEY=`. Also set `GEM_COLLECT_SECRET=` to any long random value.
+   **On Vercel:** **Project → Settings → Environment Variables**, add the same three (plus `GEMINI_API_KEY` / `GEMINI_MODEL` for tender analysis), then redeploy.
+5. **Fill the database once from your PC:** `npm run gem:collect` (about 80 s). It prints e.g. `Saved: { received: 260, new: 260, updated: 0 }`.
 6. **Try the search:** http://localhost:3000/api/tenders?q=solar&sort=closing_date_asc
 7. **Run it every hour with n8n:**
-   1. Import `n8n/gobid-gem-collector.json`.
-   2. Open **Supabase: save bids** and replace `YOUR-PROJECT` in the URL with your project URL.
-   3. In the same node, create a **Supabase API** credential with the same URL and service_role key.
-   4. Click **Execute workflow** once to test, then switch the workflow **Active**.
+   1. Import `n8n/gobid-gem-collector.json`: two steps, **Every hour** and **GoBid: collect GeM bids**.
+   2. In **GoBid: collect GeM bids**, replace `YOUR-SITE` in the URL with your Vercel production address.
+   3. Set its credential to a new **Header Auth** credential: Name `x-gobid-secret`, Value = your `GEM_COLLECT_SECRET`.
+   4. Click **Execute workflow** once to test (about 80 s). It should answer `{ "region": "bom1", "new": …, "updated": … }`. Then **Publish** (or switch to **Active**).
 
 ## API
 

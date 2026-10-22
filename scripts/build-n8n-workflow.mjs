@@ -92,10 +92,12 @@ function writeChain(name, file, chain) {
 
 writeChain("GoBid analyze", "n8n/gobid-workflow.json", chain);
 
-// ---------- GeM collector: every hour, search GeM's public bid list and save to Supabase ----------
-// Replace YOUR-PROJECT in the "Supabase: save bids" node with your Supabase project URL.
-const SUPABASE_URL = "https://YOUR-PROJECT.supabase.co";
-const gemGap = Number(code("gem.js").match(/GEM_REQUEST_GAP_MS = (\d+)/)[1]);
+// ---------- GeM collector: every hour, ask the site to collect GeM bids into Supabase ----------
+// GeM refuses connections from servers outside India, which includes n8n Cloud, so the GeM
+// requests run in the site's /api/gem/collect route (Vercel, Mumbai region) and n8n only
+// triggers it. Replace YOUR-SITE with your Vercel production address, and give the node a
+// "Header Auth" credential: name x-gobid-secret, value = GEM_COLLECT_SECRET.
+const SITE_URL = "https://YOUR-SITE.vercel.app";
 
 const collector = [
   add({
@@ -105,70 +107,19 @@ const collector = [
     parameters: { rule: { interval: [{ field: "hours", hoursInterval: 1 }] } },
   }),
   add({
-    name: "GeM: open All Bids page",
+    name: "GoBid: collect GeM bids",
     type: "n8n-nodes-base.httpRequest",
     typeVersion: 4.2,
     retryOnFail: true,
-    maxTries: 3,
-    waitBetweenTries: 5000,
-    parameters: {
-      method: "GET",
-      url: "https://bidplus.gem.gov.in/all-bids",
-      sendHeaders: true,
-      specifyHeaders: "json",
-      jsonHeaders: JSON.stringify({ "user-agent": code("gem.js").match(/GEM_USER_AGENT = "([^"]+)"/)[1] }),
-      options: { response: { response: { fullResponse: true, responseFormat: "text" } } },
-    },
-  }),
-  codeNode(
-    "Plan searches",
-    `${code("gem.js")}\n\nconst page = $input.first().json;\n` +
-      "const session = readGemSession(page.body !== undefined ? page.body : page.data, page.headers['set-cookie']);\n" +
-      "return buildGemSearches(session).map((s) => ({ json: s }));",
-  ),
-  add({
-    name: "GeM: search bids",
-    type: "n8n-nodes-base.httpRequest",
-    typeVersion: 4.2,
-    retryOnFail: true,
-    maxTries: 3,
+    maxTries: 2,
     waitBetweenTries: 5000,
     parameters: {
       method: "POST",
-      url: "={{ $json.url }}",
-      sendHeaders: true,
-      specifyHeaders: "json",
-      jsonHeaders: "={{ JSON.stringify($json.headers) }}",
-      sendBody: true,
-      contentType: "raw",
-      rawContentType: "application/x-www-form-urlencoded",
-      body: "={{ $json.body }}",
-      // One request at a time, spaced out, to stay light on GeM.
-      options: { batching: { batch: { batchSize: 1, batchInterval: gemGap } }, response: { response: { responseFormat: "json" } } },
-    },
-  }),
-  codeNode(
-    "Merge bids",
-    `${code("gem.js")}\n\nconst plans = $('Plan searches').all();\n` +
-      "const lists = $input.all().map((reply, i) => parseGemSearch(reply.json, plans[i].json.keyword));\n" +
-      "return [{ json: { rows: toTenderRows(mergeGemBids(lists), new Date().toISOString()), requests: plans.length + 1 } }];",
-  ),
-  add({
-    name: "Supabase: save bids",
-    type: "n8n-nodes-base.httpRequest",
-    typeVersion: 4.2,
-    retryOnFail: true,
-    maxTries: 3,
-    waitBetweenTries: 5000,
-    parameters: {
-      method: "POST",
-      url: `${SUPABASE_URL}/rest/v1/rpc/upsert_gem_tenders`,
-      authentication: "predefinedCredentialType",
-      nodeCredentialType: "supabaseApi",
-      sendBody: true,
-      specifyBody: "json",
-      jsonBody: "={{ JSON.stringify($json) }}",
-      options: {},
+      url: `${SITE_URL}/api/gem/collect`,
+      authentication: "genericCredentialType",
+      genericAuthType: "httpHeaderAuth",
+      // A collection takes about 80 s.
+      options: { timeout: 280000 },
     },
   }),
 ];

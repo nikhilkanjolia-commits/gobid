@@ -2,7 +2,7 @@
   "name": "GoBid analyze",
   "nodes": [
     {
-      "id": "dbb16fc8-ccd6-4c71-bb66-bc71cee0cfc9",
+      "id": "06cc96a3-b543-4612-9df9-bde029cb66ec",
       "position": [
         0,
         0
@@ -19,7 +19,7 @@
       }
     },
     {
-      "id": "d902a0e9-1761-48f5-a3cf-67d68476b6cf",
+      "id": "5f692325-3adb-40e8-8f29-08cf63e6478d",
       "position": [
         220,
         0
@@ -32,7 +32,7 @@
       }
     },
     {
-      "id": "7ffc5641-fedc-4f64-ae85-0233d67fde22",
+      "id": "d1d57572-d423-4ff3-b5ad-6bf50b0a31b2",
       "position": [
         440,
         0
@@ -57,7 +57,7 @@
       }
     },
     {
-      "id": "203f7bf5-ac5b-40bb-97e8-629bb9dca881",
+      "id": "bd9d65f7-aab4-4be3-ae3a-4f6dc29f8a9b",
       "position": [
         660,
         0
@@ -70,7 +70,7 @@
       }
     },
     {
-      "id": "e8c09cff-614d-430d-ad78-e465096111fa",
+      "id": "fc969583-bdab-42fe-b283-0d1c30cb4a01",
       "position": [
         880,
         0
@@ -95,7 +95,7 @@
       }
     },
     {
-      "id": "04143832-d7f3-48da-98b9-b35f7edceb74",
+      "id": "8d1cd39c-8adb-4640-8749-a2929bcb0135",
       "position": [
         1100,
         0
@@ -108,7 +108,7 @@
       }
     },
     {
-      "id": "eab04908-be81-463f-b835-e99504098348",
+      "id": "83603778-b9d3-4c58-aa3a-4c6f4d0a67ab",
       "position": [
         1320,
         0
@@ -133,7 +133,7 @@
       }
     },
     {
-      "id": "f87202db-03f1-4225-940c-b5f69821e01e",
+      "id": "d6acd836-044c-462e-a841-01116ef527c4",
       "position": [
         1540,
         0
@@ -146,7 +146,7 @@
       }
     },
     {
-      "id": "ff1b11da-cefc-4e9b-8f4e-474dd0f5c1ba",
+      "id": "0f5c4e88-eff3-40f4-a20e-3afa895c0270",
       "position": [
         1760,
         0
@@ -171,7 +171,7 @@
       }
     },
     {
-      "id": "29b68a8c-4fea-46c9-8d65-7324f3511e20",
+      "id": "06372cb3-37a4-4398-a1c0-ae07f8e449b2",
       "position": [
         1980,
         0
@@ -184,7 +184,7 @@
       }
     },
     {
-      "id": "5b7fc202-9706-4439-83be-d8befdea489e",
+      "id": "aa7b0704-ca38-4804-9731-e737e40d7a7d",
       "position": [
         2200,
         0

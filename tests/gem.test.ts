@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import collector from "../n8n/gobid-gem-collector.json";
+import { collectGemBids } from "../src/lib/gemCollector";
 import { loadN8nCode } from "./loadN8nCode";
 
 type Search = { keyword: string; page: number; url: string; headers: Record<string, string>; body: string };
@@ -87,32 +88,62 @@ describe("mergeGemBids", () => {
   });
 });
 
-describe("GeM collector workflow (simulated run)", () => {
-  it("plans the searches, merges replies and sends rows to Supabase", () => {
-    const outputs: Record<string, { json: unknown }[]> = {};
-    const $ = (name: string) => ({ all: () => outputs[name], first: () => outputs[name][0] });
-    let previous: { json: unknown }[] = [];
-    for (const node of collector.nodes) {
-      const $input = { all: () => previous, first: () => previous[0] };
-      if (node.type === "n8n-nodes-base.code") {
-        previous = new Function("$", "$input", (node.parameters as { jsCode: string }).jsCode)($, $input);
-      } else if (node.name === "GeM: open All Bids page") {
-        previous = [{ json: { body: PAGE_HTML, headers: { "set-cookie": SET_COOKIE.split(", ") }, statusCode: 200 } }];
-      } else if (node.name === "GeM: search bids") {
-        previous = previous.map(() => ({ json: mccbReply })); // one reply per planned search
-      } else if (node.name === "Supabase: save bids") {
-        expect((node.parameters as { url: string }).url).toMatch(/\/rest\/v1\/rpc\/upsert_gem_tenders$/);
-      } else {
-        previous = [{ json: {} }];
+describe("collectGemBids (what /api/gem/collect runs)", () => {
+  // A fake GeM: the All Bids page, then the real "MCCB" reply for every search.
+  function fakeGem() {
+    const calls: { url: string; method: string; cookie?: string }[] = [];
+    const f = (async (url: string, init?: RequestInit) => {
+      const headers = (init?.headers ?? {}) as Record<string, string>;
+      calls.push({ url, method: init?.method ?? "GET", cookie: headers.cookie });
+      if (url.endsWith("/all-bids")) {
+        return new Response(PAGE_HTML, { headers: [["set-cookie", "csrf_gem_cookie=abc; path=/"], ["set-cookie", "ci_session=xyz; path=/"]] });
       }
-      outputs[node.name] = previous;
-    }
-    const plans = outputs["Plan searches"];
-    expect(plans).toHaveLength(G.GEM_KEYWORDS.length * 2);
-    const saved = outputs["Merge bids"][0].json as { rows: { matched_keywords: string[]; source: string }[]; requests: number };
-    expect(saved.requests).toBe(plans.length + 1);
-    expect(saved.rows).toHaveLength(10);
-    expect(saved.rows[0].source).toBe("gem");
-    expect(saved.rows[0].matched_keywords).toEqual(G.GEM_KEYWORDS);
+      return Response.json(mccbReply);
+    }) as typeof fetch;
+    return { f, calls };
+  }
+
+  it("opens the page, runs every search with the session, merges and saves once", async () => {
+    const { f, calls } = fakeGem();
+    const saves: { rows: { matched_keywords: string[]; source: string }[]; requests: number }[] = [];
+    const result = await collectGemBids({
+      fetch: f,
+      gapMs: 0,
+      save: async (rows, requests) => {
+        saves.push({ rows: rows as (typeof saves)[0]["rows"], requests });
+        return { received: rows.length, new: rows.length, updated: 0 };
+      },
+    });
+    expect(calls).toHaveLength(1 + G.GEM_KEYWORDS.length * 2);
+    expect(calls.slice(1).every((c) => c.method === "POST" && c.cookie === "csrf_gem_cookie=abc; ci_session=xyz")).toBe(true);
+    expect(saves).toHaveLength(1);
+    expect(saves[0].requests).toBe(calls.length);
+    expect(saves[0].rows).toHaveLength(10);
+    expect(saves[0].rows[0].matched_keywords).toEqual(G.GEM_KEYWORDS);
+    expect(result).toMatchObject({ received: 10, new: 10, updated: 0, requests: calls.length });
+  });
+
+  it("stops with a clear error if GeM refuses a search, and saves nothing", async () => {
+    let n = 0;
+    const f = (async (url: string) => {
+      if (url.endsWith("/all-bids")) return new Response(PAGE_HTML);
+      return ++n === 3 ? new Response("blocked", { status: 403 }) : Response.json(mccbReply);
+    }) as typeof fetch;
+    let saved = false;
+    await expect(
+      collectGemBids({ fetch: f, gapMs: 0, save: async () => ((saved = true), { received: 0, new: 0, updated: 0 }) }),
+    ).rejects.toThrow("answered 403");
+    expect(saved).toBe(false);
+  });
+});
+
+describe("GeM collector workflow (n8n)", () => {
+  it("runs every hour and calls the site's collect route with a header secret", () => {
+    expect(collector.nodes.map((n) => n.name)).toEqual(["Every hour", "GoBid: collect GeM bids"]);
+    const call = collector.nodes[1].parameters as Record<string, unknown>;
+    expect(call.method).toBe("POST");
+    expect(call.url).toMatch(/\/api\/gem\/collect$/);
+    expect(call.genericAuthType).toBe("httpHeaderAuth");
+    expect(JSON.stringify(collector.nodes[0].parameters)).toContain('"hoursInterval":1');
   });
 });
