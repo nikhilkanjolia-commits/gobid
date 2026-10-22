@@ -1,0 +1,5 @@
+# Never change line endings inside binary files (the test PDFs have byte offsets).
+*.pdf binary
+*.xlsx binary
+*.jpg binary
+*.png binary
