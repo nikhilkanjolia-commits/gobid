@@ -34,7 +34,7 @@ const { priceBoq } = loadN8nCode<{ priceBoq: (rows: Checked[], firm: { markupPct
   ["priceBoq"],
 );
 
-const csv = (name: string) => readFileSync(`data/sample-price-lists/${name}`, "utf8");
+const csv = (name: string) => readFileSync(`public/samples/${name}`, "utf8");
 const priceRows = mergePriceLists([
   parsePriceList("switchgear-supplier.csv", csv("switchgear-supplier.csv")),
   parsePriceList("cables-supplier.csv", csv("cables-supplier.csv")),

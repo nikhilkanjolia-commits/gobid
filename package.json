@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "vitest run"
+    "test": "vitest run",
+    "build:n8n": "node scripts/build-n8n-workflow.mjs"
   },
   "dependencies": {
     "exceljs": "^4.4.0",

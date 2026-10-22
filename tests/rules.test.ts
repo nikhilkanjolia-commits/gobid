@@ -10,6 +10,7 @@ type Clause = {
   quote: string | null;
   verified: boolean;
   verifyNote?: string | null;
+  makes?: string[];
 };
 type Row = { type: string; label: string; result: string; reason: string; page: number | null; firmHas: string | null };
 const { evaluateEligibility } = loadN8nCode<{
@@ -130,6 +131,19 @@ describe("evaluateEligibility", () => {
     expect(expired.result).toBe("fail");
     expect(expired.reason).toContain("expired");
     expect(oem({ required: false }).result).toBe("pass");
+  });
+
+  it("falls back to the makes named in the OEM clause's quote", () => {
+    const c = passingCore();
+    const quote = "Manufacturer's Authorization Form (MAF) from Schneider Electric for all MCCBs";
+    c[3] = { ...clause("oem_authorization", { required: true }, { quote }), makes: ["Schneider Electric"] };
+    const row = only(evaluateEligibility(c, firm, TODAY), "oem_authorization");
+    expect(row.result).toBe("fail");
+    expect(row.reason).toContain("Schneider Electric");
+
+    // A make the AI names that isn't in the quote is ignored.
+    c[3] = { ...clause("oem_authorization", { required: true }, { quote }), makes: ["Havells"] };
+    expect(only(evaluateEligibility(c, firm, TODAY), "oem_authorization").result).toBe("unknown");
   });
 
   it("checks certificates are held and not expired", () => {

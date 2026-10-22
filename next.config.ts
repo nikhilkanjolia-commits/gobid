@@ -1,8 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
   cacheComponents: true,
+  // The API route reads the n8n Code-node scripts and sample price lists from disk.
+  outputFileTracingIncludes: {
+    "/api/analyze": ["./n8n/code/**/*", "./public/samples/**/*"],
+  },
   partialPrefetching: true,
   turbopack: {
     rules: {

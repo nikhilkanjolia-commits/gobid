@@ -118,7 +118,11 @@ function checkOem(c, firm, today) {
   const has = mafs.length ? mafs.map((m) => m.brand + (stillValid(m.validUntil, today) ? "" : " (expired)")).join(", ") : "None";
   if (v.required === false) return row(c, "pass", has, "No OEM authorization required");
   if (v.required !== true) return row(c, "unknown", has, "Could not tell whether OEM authorization is required");
-  const brands = Array.isArray(v.brands) ? v.brands.filter(Boolean) : [];
+  // Brands from values.brands, or else the AI's `makes` — kept only if the name really
+  // appears in the clause's verified quote.
+  const inQuote = (m) => sameName(m, m) && String(c.quote || "").toLowerCase().replace(/[^a-z0-9]/g, "").includes(String(m).toLowerCase().replace(/[^a-z0-9]/g, ""));
+  const listed = Array.isArray(v.brands) && v.brands.length ? v.brands : (Array.isArray(c.makes) ? c.makes : []).filter(inQuote);
+  const brands = listed.filter(Boolean);
   if (brands.length === 0) {
     return row(c, "unknown", has, "OEM authorization required, but the tender doesn't say for which make; check manually");
   }

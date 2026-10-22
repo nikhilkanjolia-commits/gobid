@@ -1,0 +1,90 @@
+{
+  "_note": "Pretend AI answers for the demo tender, so the screen works without an API key. Item 'certificate: electrical licence' has a deliberately wrong quote to show the quote check turning it into 'unknown'.",
+  "clauses": [
+    {
+      "type": "turnover",
+      "requirement": "Average annual turnover of at least ₹25 lakh over 3 years",
+      "values": { "minAvgAnnualInr": 2500000 },
+      "page": 2,
+      "quote": "Minimum Average Annual Turnover of the bidder (For 3 Years): 25 Lakh(s)"
+    },
+    {
+      "type": "experience",
+      "requirement": "3 years of past experience in similar work",
+      "values": { "years": 3 },
+      "page": 2,
+      "quote": "Years of Past Experience Required for same/similar service: 3 Year(s)"
+    },
+    {
+      "type": "mse_exemption",
+      "requirement": "No MSE exemption for experience, turnover or EMD",
+      "values": { "experienceAndTurnover": false, "emd": false },
+      "page": 2,
+      "quote": "MSE Exemption for Years Of Experience and Turnover: No"
+    },
+    {
+      "type": "emd",
+      "requirement": "EMD of ₹37,000",
+      "values": { "required": true, "amountInr": 37000 },
+      "page": 2,
+      "quote": "EMD Amount: 37,000"
+    },
+    {
+      "type": "oem_authorization",
+      "requirement": "MAF from Schneider Electric for all MCCBs",
+      "values": { "required": true, "brands": ["Schneider"] },
+      "page": 3,
+      "quote": "The bidder shall submit Manufacturer's Authorization Form (MAF) from Schneider Electric for all MCCBs offered"
+    },
+    {
+      "type": "certificate",
+      "requirement": "Valid ISO 9001 certificate",
+      "values": { "name": "ISO 9001" },
+      "page": 3,
+      "quote": "The bidder must possess a valid ISO 9001 certificate on the date of bid submission."
+    },
+    {
+      "type": "certificate",
+      "requirement": "Valid electrical contractor licence",
+      "values": { "name": "Electrical Contractor Licence" },
+      "page": 3,
+      "quote": "Bidder must hold a Class A electrical licence issued by the Central Electricity Authority"
+    },
+    {
+      "type": "approved_makes",
+      "requirement": "Only listed makes allowed per item group",
+      "values": {
+        "items": [
+          { "itemGroup": "MCB / RCCB / Distribution Boards", "brands": ["Havells", "Legrand", "Schneider"] },
+          { "itemGroup": "MCCB", "brands": ["Schneider", "ABB", "L&T"] },
+          { "itemGroup": "Cables and Wires", "brands": ["Polycab", "Havells", "KEI"] },
+          { "itemGroup": "LED Light Fittings", "brands": ["Philips", "Havells", "Wipro"] }
+        ]
+      },
+      "page": 4,
+      "quote": "MCCB: Schneider, ABB, L&T"
+    }
+  ],
+  "boqRows": [
+    { "item": "1", "description": "Supply of MCB 32A SP C-curve 10kA as per IS/IEC 60898", "unit": "Nos", "qty": 40, "rate": 300, "amount": 12000, "page": 5, "quote": "Supply of MCB 32A SP C-curve 10kA" },
+    { "item": "2", "description": "Supply of MCB 63A FP C-curve 10kA as per IS/IEC 60898", "unit": "Nos", "qty": 6, "rate": 2000, "amount": 12000, "page": 5, "quote": "Supply of MCB 63A FP C-curve 10kA" },
+    { "item": "3", "description": "MCCB 100A TP 36kA with thermal magnetic release", "unit": "Nos", "qty": 2, "rate": 12000, "amount": 24000, "page": 5, "quote": "MCCB 100A TP 36kA with thermal magnetic release" },
+    { "item": "4", "description": "RCCB 40A DP 30mA sensitivity", "unit": "Nos", "qty": 8, "rate": 2100, "amount": 17600, "page": 5, "quote": "RCCB 40A DP 30mA sensitivity" },
+    { "item": "5", "description": "MCB distribution board 8 way TPN double door", "unit": "Nos", "qty": 3, "rate": 5500, "amount": 16500, "page": 5, "quote": "MCB distribution board 8 way TPN double door" },
+    { "item": "6", "description": "LT XLPE armoured aluminium cable 4 core 25 sq mm 1.1 kV grade", "unit": "Mtr", "qty": 350, "rate": null, "amount": null, "page": 6, "quote": "LT XLPE armoured aluminium cable 4 core 25 sq mm" },
+    { "item": "7", "description": "FRLS PVC insulated copper wire 2.5 sq mm single core", "unit": "Mtr", "qty": 2000, "rate": null, "amount": null, "page": 6, "quote": "FRLS PVC insulated copper wire 2.5 sq mm" },
+    { "item": "8", "description": "LED panel light 2x2 ft 36W recessed with driver", "unit": "Nos", "qty": 30, "rate": null, "amount": null, "page": 6, "quote": "LED panel light 2x2 ft 36W recessed with driver" },
+    { "item": "9", "description": "Earth pit with copper plate 600x600x3 mm complete with charcoal and salt", "unit": "Nos", "qty": 4, "rate": null, "amount": null, "page": 6, "quote": "Earth pit with copper plate 600x600x3 mm" }
+  ],
+  "matches": [
+    { "item": "1", "sku": "HV-MCB-C32-1P", "confidence": 0.95, "reason": "32A single-pole C-curve 10kA MCB" },
+    { "item": "2", "sku": "HV-MCB-C63-4P", "confidence": 0.93, "reason": "63A four-pole C-curve 10kA MCB" },
+    { "item": "3", "sku": "HV-MCCB-100-25", "confidence": 0.8, "reason": "100A TP MCCB" },
+    { "item": "4", "sku": "HV-RCCB-40-2P", "confidence": 0.9, "reason": "40A DP RCCB, 30mA" },
+    { "item": "5", "sku": "HV-DB-8W-TPN", "confidence": 0.9, "reason": "8-way TPN double-door board" },
+    { "item": "6", "sku": "PC-AYFY-4C-25", "confidence": 0.92, "reason": "4C 25 sq mm aluminium armoured 1.1kV" },
+    { "item": "7", "sku": "PC-FRLS-2.5", "confidence": 0.9, "reason": "2.5 sq mm FRLS copper wire" },
+    { "item": "8", "sku": "HV-LED-PNL-36", "confidence": 0.62, "reason": "36W 2x2 panel; driver not stated in price list" },
+    { "item": "9", "sku": null, "confidence": 0, "reason": "No earthing kit in the price lists" }
+  ]
+}

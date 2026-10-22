@@ -1,0 +1,26 @@
+[
+  {
+    "page": 1,
+    "text": "GeM Bid Document (DEMO - not a real tender)\nBid Number: GEM/2026/B/0000001\nMinistry/State Name: Demo State Public Works Department\nItem Category: Supply, Installation, Testing and Commissioning of LT Electrical Works for Office Building\nBid End Date/Time: 15-11-2026 15:00:00\nEstimated Bid Value: 18,50,000"
+  },
+  {
+    "page": 2,
+    "text": "Bid Details\nMinimum Average Annual Turnover of the bidder (For 3 Years): 25 Lakh(s)\nYears of Past Experience Required for same/similar service: 3 Year(s)\nMSE Exemption for Years Of Experience and Turnover: No\nEMD Detail\nRequired: Yes\nEMD Amount: 37,000\nMSE exemption from EMD: No\nBidders shall upload documentary evidence for turnover and experience along with the bid."
+  },
+  {
+    "page": 3,
+    "text": "Additional Terms and Conditions\n1. The bidder shall submit Manufacturer's Authorization Form (MAF) from Schneider Electric for all MCCBs offered, specific to this bid.\n2. The bidder must possess a valid ISO 9001 certificate on the date of bid submission.\n3. The bidder must hold a valid electrical contractor licence issued by the State Licensing Board.\n4. Material shall be delivered within 30 days of award of contract."
+  },
+  {
+    "page": 4,
+    "text": "List of Approved Makes\nMCB / RCCB / Distribution Boards: Havells, Legrand, Schneider\nMCCB: Schneider, ABB, L&T\nCables and Wires: Polycab, Havells, KEI\nLED Light Fittings: Philips, Havells, Wipro\nAny make not listed above shall be rejected."
+  },
+  {
+    "page": 5,
+    "text": "Bill of Quantities\nSl. No. Description of Item Unit Qty Rate (Rs.) Amount (Rs.)\n1 Supply of MCB 32A SP C-curve 10kA as per IS/IEC 60898 Nos 40 300.00 12,000.00\n2 Supply of MCB 63A FP C-curve 10kA as per IS/IEC 60898 Nos 6 2,000.00 12,000.00\n3 MCCB 100A TP 36kA with thermal magnetic release Nos 2 12,000.00 24,000.00\n4 RCCB 40A DP 30mA sensitivity Nos 8 2,100.00 17,600.00\n5 MCB distribution board 8 way TPN double door Nos 3 5,500.00 16,500.00"
+  },
+  {
+    "page": 6,
+    "text": "Bill of Quantities (continued)\n6 LT XLPE armoured aluminium cable 4 core 25 sq mm 1.1 kV grade Mtr 350\n7 FRLS PVC insulated copper wire 2.5 sq mm single core Mtr 2000\n8 LED panel light 2x2 ft 36W recessed with driver Nos 30\n9 Earth pit with copper plate 600x600x3 mm complete with charcoal and salt Nos 4\nNote: Quantities are indicative and may vary by +/- 25%."
+  }
+]
