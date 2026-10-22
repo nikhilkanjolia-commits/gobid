@@ -65,6 +65,14 @@
       "quote": "MCCB: Schneider, ABB, L&T"
     }
   ],
+  "documents": [
+    { "docType": "oem_authorization", "name": "MAF from Schneider Electric for MCCBs", "requirement": "required", "condition": null, "page": 3, "quote": "The bidder shall submit Manufacturer's Authorization Form (MAF) from Schneider Electric for all MCCBs offered, specific to this bid." },
+    { "docType": "iso_certificate", "name": "ISO 9001 certificate", "requirement": "required", "condition": null, "page": 3, "quote": "The bidder must possess a valid ISO 9001 certificate on the date of bid submission." },
+    { "docType": "electrical_licence", "name": "Electrical contractor licence", "requirement": "required", "condition": null, "page": 3, "quote": "The bidder must hold a valid electrical contractor licence issued by the State Licensing Board." },
+    { "docType": "turnover_evidence", "name": "Turnover evidence", "requirement": "required", "condition": null, "page": 2, "quote": "Bidders shall upload documentary evidence for turnover and experience along with the bid." },
+    { "docType": "experience_evidence", "name": "Experience evidence", "requirement": "required", "condition": null, "page": 2, "quote": "Bidders shall upload documentary evidence for turnover and experience along with the bid." },
+    { "docType": "emd_or_bid_security", "name": "EMD of Rs 37,000", "requirement": "required", "condition": null, "page": 2, "quote": "EMD Amount: 37,000" }
+  ],
   "boqRows": [
     { "item": "1", "description": "Supply of MCB 32A SP C-curve 10kA as per IS/IEC 60898", "unit": "Nos", "qty": 40, "rate": 300, "amount": 12000, "page": 5, "quote": "Supply of MCB 32A SP C-curve 10kA" },
     { "item": "2", "description": "Supply of MCB 63A FP C-curve 10kA as per IS/IEC 60898", "unit": "Nos", "qty": 6, "rate": 2000, "amount": 12000, "page": 5, "quote": "Supply of MCB 63A FP C-curve 10kA" },

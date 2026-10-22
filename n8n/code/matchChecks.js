@@ -6,7 +6,8 @@ function num(x) {
   return typeof x === "number" && isFinite(x) ? x : null;
 }
 
-// Reads current (A), breaking capacity (kA), poles, cores and size (sq mm) from free text.
+// Reads current (A), breaking capacity (kA), poles, cores, size (sq mm) and voltage grade (kV)
+// from free text.
 function parseSpecs(text) {
   const t = " " + String(text || "").toLowerCase() + " ";
   const pick = (re) => {
@@ -26,6 +27,7 @@ function parseSpecs(text) {
     poles: poles,
     cores: pick(/(\d+(?:\.\d+)?)\s*(?:cores?|c)\b/),
     sqmm: pick(/(\d+(?:\.\d+)?)\s*(?:sq\.?\s*mm|sqmm|mm2|mm²)/),
+    kv: pick(/(\d+(?:\.\d+)?)\s*kv\b/),
   };
 }
 

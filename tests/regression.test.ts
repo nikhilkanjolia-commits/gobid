@@ -12,7 +12,7 @@ type Page = { page: number; text: string };
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Any = any;
 
-const FILES = ["verifyQuotes.js", "rules.js", "shortlist.js", "matchChecks.js", "pricing.js", "verdict.js", "requests.js", "finalize.js"];
+const FILES = ["verifyQuotes.js", "rules.js", "shortlist.js", "matchChecks.js", "pricing.js", "verdict.js", "requests.js", "readiness.js", "finalize.js"];
 const L = new Function(
   `${FILES.map((f) => readFileSync(path.join("n8n/code", f), "utf8")).join("\n\n")}\nreturn { finalizeResult, toClauses, uniqueItems };`,
 )() as Record<string, (...a: Any[]) => Any>;

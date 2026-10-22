@@ -67,13 +67,28 @@ const chain = [
     `${code("requests.js", "shortlist.js", "finalize.js")}\n\n${BODY}\nconst boqRows = uniqueItems(readGeminiJson($('Gemini: BOQ').first().json, 'Reading the BOQ').rows);\nconst m = matchRequest(boqRows, shortlistSkus(boqRows, body.priceRows));\nreturn [{ json: Object.assign({}, m.request, { boqRows: boqRows }) }];`,
   ),
   geminiNode("Gemini: match SKUs"),
+  // Supporting documents (MAF, certificates…). With none uploaded, the AI gets a one-line
+  // placeholder and answers with an empty list.
+  codeNode(
+    "A6 request",
+    `${code("requests.js")}\n\n${BODY}\n` +
+      "const readable = (body.supportingDocs || []).filter((d) => !d.unreadable);\n" +
+      "return [{ json: supportingDocsRequest(readable.length ? readable : [{ name: 'none', pages: [{ page: 1, text: '(no documents uploaded)' }] }]) }];",
+  ),
+  geminiNode("Gemini: supporting docs"),
   codeNode(
     "Decide",
-    `${code("verifyQuotes.js", "rules.js", "matchChecks.js", "pricing.js", "verdict.js", "requests.js", "finalize.js")}\n\n${BODY}\n` +
-      "const clauses = toClauses(readGeminiJson($('Gemini: eligibility').first().json, 'Reading eligibility clauses'));\n" +
+    `${code("verifyQuotes.js", "rules.js", "matchChecks.js", "pricing.js", "verdict.js", "requests.js", "readiness.js", "finalize.js")}\n\n${BODY}\n` +
+      "const eligibilityAnswer = readGeminiJson($('Gemini: eligibility').first().json, 'Reading eligibility clauses');\n" +
       "const boqRows = $('A4 request').first().json.boqRows;\n" +
       "const matches = readGeminiJson($('Gemini: match SKUs').first().json, 'Matching SKUs').matches;\n" +
-      "return [{ json: finalizeResult({ pages: body.pages, clauses, boqRows, matches, priceRows: body.priceRows, firm: body.firm, today: body.today }) }];",
+      "const files = body.supportingDocs || [];\n" +
+      "const readable = files.filter((d) => !d.unreadable);\n" +
+      "const indexInAll = readable.map((f) => files.indexOf(f) + 1);\n" +
+      "const supportingAi = readable.length\n" +
+      "  ? toSupportingDocs(readGeminiJson($('Gemini: supporting docs').first().json, 'Reading supporting documents'), readable.length).map((d) => Object.assign({}, d, { docIndex: indexInAll[d.docIndex - 1] }))\n" +
+      "  : [];\n" +
+      "return [{ json: finalizeResult({ pages: body.pages, clauses: toClauses(eligibilityAnswer), docRequirements: toDocRequirements(eligibilityAnswer), boqRows, matches, priceRows: body.priceRows, firm: body.firm, today: body.today, supportingFiles: files, supportingAi }) }];",
   ),
   add({ name: "Respond", type: "n8n-nodes-base.respondToWebhook", typeVersion: 1.1, parameters: { respondWith: "firstIncomingItem", options: {} } }),
 ];

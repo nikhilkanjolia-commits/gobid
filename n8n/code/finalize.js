@@ -1,6 +1,6 @@
 // Ties the plain-code steps together once the AI has answered. Uses functions from
-// verifyQuotes.js, rules.js, matchChecks.js, pricing.js and verdict.js, so the n8n
-// "Decide" node contains those files followed by this one.
+// verifyQuotes.js, rules.js, matchChecks.js, pricing.js, verdict.js and readiness.js, so the
+// n8n "Decide" node contains those files followed by this one.
 
 // BOQ item numbers can repeat across sections ("1" under each heading); make them unique
 // so every line keeps its own SKU match.
@@ -14,7 +14,8 @@ function uniqueItems(rows) {
   });
 }
 
-// input: { pages, clauses, boqRows, matches, priceRows, firm, today }
+// input: { pages, clauses, boqRows, matches, priceRows, firm, today,
+//          docRequirements?, supportingFiles?, supportingAi? }
 function finalizeResult(input) {
   const clauses = verifyQuotes(input.pages, input.clauses || []);
   const eligibility = evaluateEligibility(clauses, input.firm, input.today);
@@ -25,10 +26,36 @@ function finalizeResult(input) {
   const boqRows = readBoqLines(input.pages, verifyQuotes(input.pages, input.boqRows || []));
   const checked = checkMatches(boqRows, input.matches || [], input.priceRows, approvedGroups);
   const boq = priceBoq(checked, input.firm);
+  const verdict = decide(eligibility, boq, input.firm);
+
+  // Bid Readiness: documents, OEM authorization, technical compliance, overall status.
+  const docRequirements = verifyQuotes(input.pages, input.docRequirements || []);
+  const supportingDocs = checkSupportingDocs(input.supportingFiles || [], input.supportingAi || []);
+  const oem = checkOemAuthorization({
+    clauses: clauses,
+    docRequirements: docRequirements,
+    supportingDocs: supportingDocs,
+    firm: input.firm,
+    today: input.today,
+    tenderRef: tenderReference(input.pages),
+    boqDescriptions: boqRows.map((r) => r.description),
+  });
+  const documents = evaluateDocuments({ docRequirements: docRequirements, supportingDocs: supportingDocs, firm: input.firm, today: input.today, oem: oem });
+  const compliance = technicalCompliance(checked, input.priceRows);
+  const summary = computeReadiness({ eligibility: eligibility, documents: documents, oem: oem, compliance: compliance, boqTotals: boq.totals });
+
   return {
-    verdict: decide(eligibility, boq, input.firm),
+    verdict: verdict,
     eligibility: eligibility,
     boq: boq,
+    readiness: {
+      summary: summary,
+      documents: documents,
+      oem: oem,
+      compliance: compliance,
+      supportingDocs: supportingDocs.map((d) => ({ fileName: d.fileName, readable: d.readable, docType: d.docType, title: d.title, problem: d.problem, fields: d.fields, unverifiedFields: d.unverifiedFields })),
+      tenderReference: tenderReference(input.pages),
+    },
     meta: { pageCount: input.pages.length, firmName: input.firm.name || null },
   };
 }

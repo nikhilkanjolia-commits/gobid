@@ -17,9 +17,10 @@ const priceRows = mergePriceLists(
 const body = { pages: demoPages, priceRows, firm, today: "2026-10-22" };
 const fakeAi: Record<string, unknown> = {
   "Gemini: classify pages": geminiReply({ pages: demoPages.map((p) => ({ page: p.page, labels: p.page >= 5 ? ["boq"] : ["eligibility"] })) }),
-  "Gemini: eligibility": geminiReply({ clauses: demoAnswers.clauses }),
+  "Gemini: eligibility": geminiReply({ clauses: demoAnswers.clauses, documents: demoAnswers.documents }),
   "Gemini: BOQ": geminiReply({ rows: demoAnswers.boqRows }),
   "Gemini: match SKUs": geminiReply({ matches: demoAnswers.matches }),
+  "Gemini: supporting docs": geminiReply({ documents: [] }),
 };
 
 function run() {
@@ -36,7 +37,14 @@ function run() {
       outputs[node.name] = fakeAi[node.name];
     }
   }
-  return { result: outputs["Decide"] as { verdict: { decision: string; reason: string }; boq: { totals: { redLines: number } } }, sent };
+  return {
+    result: outputs["Decide"] as {
+      verdict: { decision: string; reason: string };
+      boq: { totals: { redLines: number } };
+      readiness: { summary: { status: string }; documents: { status: string }[] };
+    },
+    sent,
+  };
 }
 
 describe("n8n workflow", () => {
@@ -54,6 +62,8 @@ describe("n8n workflow", () => {
     expect(result.verdict.decision).toBe("NO-GO");
     expect(result.verdict.reason).toContain("Schneider");
     expect(result.boq.totals.redLines).toBeGreaterThanOrEqual(2);
+    expect(result.readiness.summary.status).toBe("Potential disqualification");
+    expect(result.readiness.documents).toHaveLength(6);
   });
 
   it("is wired in a single chain ending at the webhook reply", () => {

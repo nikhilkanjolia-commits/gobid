@@ -4,7 +4,7 @@ import path from "node:path";
 
 // The n8n Code-node scripts, in the order the n8n "Decide" node stacks them. The server runs
 // the exact same text (direct mode and demo), so both paths make identical decisions.
-const FILES = ["verifyQuotes.js", "rules.js", "shortlist.js", "matchChecks.js", "pricing.js", "verdict.js", "requests.js", "finalize.js"];
+const FILES = ["verifyQuotes.js", "rules.js", "shortlist.js", "matchChecks.js", "pricing.js", "verdict.js", "requests.js", "readiness.js", "finalize.js"];
 const EXPORTS = [
   "classifyRequest",
   "eligibilityRequest",
@@ -12,6 +12,9 @@ const EXPORTS = [
   "matchRequest",
   "readGeminiJson",
   "toClauses",
+  "toDocRequirements",
+  "supportingDocsRequest",
+  "toSupportingDocs",
   "uniqueItems",
   "shortlistSkus",
   "finalizeResult",

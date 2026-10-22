@@ -116,7 +116,24 @@ const CLAUSE_FIELDS = {
   },
 };
 
-// A2: find the eligibility clauses with normalized values, page and exact quote.
+// Kinds of documents a tender can ask the bidder to submit (Bid Readiness checklist).
+const DOC_TYPES = [
+  "oem_authorization", "turnover_evidence", "experience_evidence", "emd_or_bid_security", "gst_registration",
+  "pan_card", "udyam_registration", "bis_certificate", "iso_certificate", "type_test_report", "technical_datasheet",
+  "local_content_declaration", "signed_annexure", "electrical_licence", "other",
+];
+
+const DOCUMENT_FIELDS = {
+  docType: { type: "STRING", enum: DOC_TYPES },
+  name: S.str,
+  requirement: { type: "STRING", enum: ["required", "conditional"] },
+  condition: S.strOrNull,
+  page: S.intOrNull,
+  quote: S.strOrNull,
+};
+
+// A2: find the eligibility clauses with normalized values, page and exact quote, and the
+// documents the bidder must submit.
 function eligibilityRequest(pages, classified) {
   const prompt =
     "Extract the bidder eligibility clauses from these tender pages. Clause types and the fields to fill:\n" +
@@ -132,14 +149,21 @@ function eligibilityRequest(pages, classified) {
     "- approved_makes: itemGroups = one object per item group: itemGroup = the item name only (e.g. \"MCCB\"), brands = each brand as a separate string.\n" +
     "Every field must be present: use null (or [] for lists) when it doesn't apply to the clause type. Return exactly " +
     "one clause each for emd, turnover, experience and oem_authorization (if present); certificate, mse_exemption and " +
-    "approved_makes may repeat. makes = every manufacturer/brand name in the quote ([] if none). " +
+    "approved_makes may repeat. makes = every manufacturer/brand name in the quote ([] if none).\n" +
+    "Also list in documents[] every document the tender explicitly asks the bidder to submit or upload (MAF/OEM " +
+    "authorization, turnover or CA certificate, experience proof such as purchase orders or completion certificates, " +
+    "EMD or bid security declaration, GST, PAN, Udyam, BIS or ISO certificates, type-test reports, datasheets, local " +
+    "content declaration, signed annexures/undertakings/forms, electrical licence…). requirement = 'conditional' when " +
+    "the tender says it applies only in some cases (condition = that case, e.g. 'if the bidder is not the OEM'); " +
+    "otherwise 'required'. Only list documents the tender actually asks for; never assume a standard list. " +
     RULES_FOR_AI;
   const schema = {
     type: "OBJECT",
     properties: {
       clauses: { type: "ARRAY", items: { type: "OBJECT", properties: CLAUSE_FIELDS, required: Object.keys(CLAUSE_FIELDS) } },
+      documents: { type: "ARRAY", items: { type: "OBJECT", properties: DOCUMENT_FIELDS, required: Object.keys(DOCUMENT_FIELDS) } },
     },
-    required: ["clauses"],
+    required: ["clauses", "documents"],
   };
   return geminiRequest(prompt, pagesBlock(pickPages(pages, classified, "eligibility", ELIGIBILITY_KEYWORDS)), schema);
 }
@@ -230,6 +254,103 @@ function matchRequest(boqRows, shortlist) {
     required: ["matches"],
   };
   return { lineCount: lines.length, request: geminiRequest(prompt, JSON.stringify(lines), schema) };
+}
+
+// Document requirements from A2, checked into a fixed shape: unknown types become "other",
+// anything without a name is dropped. (The AI's output is never trusted as-is.)
+function toDocRequirements(answer) {
+  return ((answer && answer.documents) || [])
+    .filter((d) => d && typeof d.name === "string" && d.name.trim())
+    .map((d) => ({
+      docType: DOC_TYPES.includes(d.docType) ? d.docType : "other",
+      name: d.name.trim().slice(0, 120),
+      requirement: d.requirement === "conditional" ? "conditional" : "required",
+      condition: typeof d.condition === "string" && d.condition.trim() ? d.condition.trim().slice(0, 200) : null,
+      page: Number.isInteger(d.page) ? d.page : null,
+      quote: typeof d.quote === "string" && d.quote.trim() ? d.quote : null,
+    }));
+}
+
+// Fields read from a supporting document (MAF letter, certificate, purchase order…).
+const SUPPORT_FIELDS = ["issuer", "holder", "manufacturer", "productCategories", "tenderReference", "territory", "issueDate", "validUntil", "signatory", "certificateNumber", "standard"];
+
+// A6: read the bidder's supporting documents (only those with readable text). docs:
+// [{ name, pages: [{page, text}] }]. Each field needs an exact quote so code can check it.
+function supportingDocsRequest(docs) {
+  const input = docs
+    .map((d, i) => `##### DOCUMENT ${i + 1}: ${d.name}\n` + d.pages.map((p) => `=== PAGE ${p.page} ===\n${p.text.slice(0, 6000)}`).join("\n\n"))
+    .join("\n\n");
+  const prompt =
+    "These are documents a bidder plans to submit with an Indian government tender. For each DOCUMENT n, give " +
+    "docIndex = n, docType (what it is; 'other' if none fit), title, and these fields when the document states them " +
+    "(null when it doesn't): issuer (who issued it), holder (who it is issued to / the authorized dealer or bidder), " +
+    "manufacturer (the OEM, for authorization letters), productCategories (products or product families covered), " +
+    "tenderReference (bid/tender number it is specific to), territory, issueDate and validUntil (as YYYY-MM-DD), " +
+    "signatory (name and designation of who signed), certificateNumber, standard (e.g. ISO 9001:2015, IS 694). " +
+    "For every non-null field add one evidence entry {field, page, quote} with the exact words from that document " +
+    "that state it. Never infer a date, name or scope that isn't written. " +
+    RULES_FOR_AI;
+  const schema = {
+    type: "OBJECT",
+    properties: {
+      documents: {
+        type: "ARRAY",
+        items: {
+          type: "OBJECT",
+          properties: {
+            docIndex: { type: "INTEGER" },
+            docType: { type: "STRING", enum: DOC_TYPES },
+            title: S.strOrNull,
+            issuer: S.strOrNull,
+            holder: S.strOrNull,
+            manufacturer: S.strOrNull,
+            productCategories: { type: "ARRAY", items: S.str },
+            tenderReference: S.strOrNull,
+            territory: S.strOrNull,
+            issueDate: S.strOrNull,
+            validUntil: S.strOrNull,
+            signatory: S.strOrNull,
+            certificateNumber: S.strOrNull,
+            standard: S.strOrNull,
+            evidence: {
+              type: "ARRAY",
+              items: { type: "OBJECT", properties: { field: { type: "STRING", enum: SUPPORT_FIELDS }, page: S.intOrNull, quote: S.strOrNull }, required: ["field", "page", "quote"] },
+            },
+          },
+          required: ["docIndex", "docType", "title", ...SUPPORT_FIELDS, "evidence"],
+        },
+      },
+    },
+    required: ["documents"],
+  };
+  return geminiRequest(prompt, input, schema);
+}
+
+// A6's answer checked into a fixed shape, keyed to the uploaded files by docIndex.
+function toSupportingDocs(answer, docCount) {
+  const str = (v) => (typeof v === "string" && v.trim() ? v.trim().slice(0, 300) : null);
+  const date = (v) => (typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v.trim()) ? v.trim() : null);
+  return ((answer && answer.documents) || [])
+    .filter((d) => d && Number.isInteger(d.docIndex) && d.docIndex >= 1 && d.docIndex <= docCount)
+    .map((d) => ({
+      docIndex: d.docIndex,
+      docType: DOC_TYPES.includes(d.docType) ? d.docType : "other",
+      title: str(d.title),
+      issuer: str(d.issuer),
+      holder: str(d.holder),
+      manufacturer: str(d.manufacturer),
+      productCategories: Array.isArray(d.productCategories) ? d.productCategories.map(str).filter(Boolean).slice(0, 20) : [],
+      tenderReference: str(d.tenderReference),
+      territory: str(d.territory),
+      issueDate: date(d.issueDate),
+      validUntil: date(d.validUntil),
+      signatory: str(d.signatory),
+      certificateNumber: str(d.certificateNumber),
+      standard: str(d.standard),
+      evidence: (Array.isArray(d.evidence) ? d.evidence : [])
+        .filter((e) => e && SUPPORT_FIELDS.includes(e.field) && Number.isInteger(e.page) && typeof e.quote === "string")
+        .map((e) => ({ field: e.field, page: e.page, quote: e.quote })),
+    }));
 }
 
 // Reads the JSON answer out of a Gemini response; throws a readable error if there isn't one.

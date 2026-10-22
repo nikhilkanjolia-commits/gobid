@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { checkPages } from "../src/lib/pdfText";
 import { mergePriceLists, parsePriceList } from "../src/lib/priceList";
+import { AnalyzeRequest } from "../src/lib/schema";
 
 const HEADER = "sku,description,brand,unit,list_price,discount_pct";
 
@@ -85,5 +86,35 @@ describe("checkPages (PDF text check)", () => {
     const r = checkPages([textPage(1), blankPage(2), blankPage(3)]);
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.error).toContain("2 of 3 pages");
+  });
+});
+
+describe("AnalyzeRequest (what the server accepts)", () => {
+  const ok = {
+    pages: [{ page: 1, text: "tender text" }],
+    priceRows: [{ sku: "X", description: "MCB", brand: "Havells", unit: "Nos", listPrice: 100, discountPct: 10, ratingKA: null, poles: null, source: "a.csv" }],
+  };
+
+  it("accepts a tender with no supporting documents (they're optional)", () => {
+    const r = AnalyzeRequest.safeParse(ok);
+    expect(r.success).toBe(true);
+    if (r.success && "pages" in r.data) expect(r.data.supportingDocs).toEqual([]);
+  });
+
+  it("accepts readable and unreadable supporting documents", () => {
+    const supportingDocs = [
+      { name: "MAF.pdf", pages: [{ page: 1, text: "We authorize…" }], unreadable: false, error: null },
+      { name: "scan.pdf", pages: [], unreadable: true, error: "looks scanned" },
+    ];
+    expect(AnalyzeRequest.safeParse({ ...ok, supportingDocs }).success).toBe(true);
+  });
+
+  it("rejects missing tender pages, empty price lists, too many or malformed documents", () => {
+    expect(AnalyzeRequest.safeParse({ ...ok, pages: [] }).success).toBe(false);
+    expect(AnalyzeRequest.safeParse({ ...ok, priceRows: [] }).success).toBe(false);
+    const nine = Array.from({ length: 9 }, (_, i) => ({ name: `d${i}.pdf`, pages: [], unreadable: true, error: null }));
+    expect(AnalyzeRequest.safeParse({ ...ok, supportingDocs: nine }).success).toBe(false);
+    expect(AnalyzeRequest.safeParse({ ...ok, supportingDocs: [{ name: "x.pdf" }] }).success).toBe(false);
+    expect(AnalyzeRequest.safeParse("not json").success).toBe(false);
   });
 });

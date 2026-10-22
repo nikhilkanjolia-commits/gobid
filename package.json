@@ -10,7 +10,8 @@
     "test": "vitest run",
     "build:n8n": "node scripts/build-n8n-workflow.mjs",
     "gem:dry-run": "node scripts/gem-collect.mjs --dry-run",
-    "gem:collect": "node --env-file=.env.local scripts/gem-collect.mjs"
+    "gem:collect": "node --env-file=.env.local scripts/gem-collect.mjs",
+    "check:secrets": "node scripts/check-client-secrets.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.118.0",

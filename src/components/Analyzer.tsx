@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { BidReadiness } from "@/components/BidReadiness";
 import { BoqTable, ClauseTable, VerdictBanner } from "@/components/Results";
 import { downloadBoqXlsx } from "@/lib/exportXlsx";
 import { extractPdfText, type PdfResult } from "@/lib/pdfText";
@@ -8,6 +9,9 @@ import { mergePriceLists, parsePriceList, type PriceListResult } from "@/lib/pri
 import type { AnalyzeResult } from "@/lib/schema";
 
 const SAMPLE_LISTS = ["switchgear-supplier.csv", "cables-supplier.csv"];
+const MAX_SUPPORT = 8;
+
+type SupportingDoc = { name: string; pages: { page: number; text: string }[]; unreadable: boolean; error: string | null };
 
 type PriceLists = { names: string[]; merged: PriceListResult; isSample: boolean };
 
@@ -26,6 +30,9 @@ export default function Analyzer({ bid, doc }: { bid?: string; doc?: string }) {
   const [elapsed, setElapsed] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<AnalyzeResult | null>(null);
+  const [support, setSupport] = useState<SupportingDoc[]>([]);
+  const [supportNote, setSupportNote] = useState<string | null>(null);
+  const [readingSupport, setReadingSupport] = useState(false);
 
   // Start with the sample price lists until the user picks their own.
   useEffect(() => {
@@ -61,6 +68,35 @@ export default function Analyzer({ bid, doc }: { bid?: string; doc?: string }) {
       return;
     }
     setLists(await readLists(await Promise.all(files.map(async (f) => ({ name: f.name, text: await f.text() }))), false));
+  }
+
+  // Supporting documents (MAF, certificates, POs): PDFs only, read to text here. A scanned or
+  // broken file is kept in the list as "unreadable" so the report says it wasn't analysed.
+  async function onSupport(fileList: FileList | null) {
+    const files = Array.from(fileList ?? []);
+    setResult(null);
+    setSupportNote(null);
+    if (files.length > MAX_SUPPORT) {
+      setSupport([]);
+      setSupportNote(`Choose at most ${MAX_SUPPORT} supporting documents.`);
+      return;
+    }
+    setReadingSupport(true);
+    const docs: SupportingDoc[] = [];
+    for (const f of files) {
+      if (!/\.pdf$/i.test(f.name)) {
+        docs.push({ name: f.name, pages: [], unreadable: true, error: "Not a PDF. Only PDF supporting documents can be read." });
+        continue;
+      }
+      const r = await extractPdfText(f);
+      docs.push(
+        r.ok
+          ? { name: f.name, pages: r.pages.slice(0, 30).map((p) => ({ page: p.page, text: p.text.slice(0, 20000) })), unreadable: false, error: null }
+          : { name: f.name, pages: [], unreadable: true, error: r.error },
+      );
+    }
+    setSupport(docs);
+    setReadingSupport(false);
   }
 
   async function analyze(body: unknown) {
@@ -127,10 +163,24 @@ export default function Analyzer({ bid, doc }: { bid?: string; doc?: string }) {
             <p key={w} className="mt-1 text-sm text-amber-800">⚠ {w}</p>
           ))}
         </div>
+        <div className="sm:col-span-2">
+          <label className="block font-medium" htmlFor="support">
+            Supporting documents <span className="font-normal text-gray-600">(optional: MAF letter, certificates, POs, CA certificate — PDF, up to {MAX_SUPPORT})</span>
+          </label>
+          <input id="support" type="file" accept="application/pdf,.pdf" multiple onChange={(e) => onSupport(e.target.files)} className="mt-2 block w-full text-sm" />
+          {readingSupport && <p className="mt-2 text-sm text-gray-600">Reading documents…</p>}
+          {supportNote && <p className="mt-2 text-sm text-red-700">✗ {supportNote}</p>}
+          {support.map((d) => (
+            <p key={d.name} className={`mt-1 text-sm ${d.unreadable ? "text-amber-800" : "text-green-700"}`}>
+              {d.unreadable ? `⚠ ${d.name}: ${d.error} It will be listed as not analysed.` : `✓ ${d.name}: ${d.pages.length} page${d.pages.length === 1 ? "" : "s"} of text read`}
+            </p>
+          ))}
+          <p className="mt-1 text-xs text-gray-500">Used for the Bid Readiness checks. Without them, required documents show as Missing or Needs review.</p>
+        </div>
         <div className="flex flex-wrap items-center gap-3 sm:col-span-2">
           <button
-            disabled={!ready}
-            onClick={() => pdf?.ok && lists && analyze({ pages: pdf.pages, priceRows: lists.merged.rows })}
+            disabled={!ready || readingSupport}
+            onClick={() => pdf?.ok && lists && analyze({ pages: pdf.pages, priceRows: lists.merged.rows, supportingDocs: support })}
             className="rounded bg-blue-700 px-5 py-2 font-semibold text-white enabled:hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-gray-400"
           >
             3. Analyze tender
@@ -148,6 +198,7 @@ export default function Analyzer({ bid, doc }: { bid?: string; doc?: string }) {
         <>
           <VerdictBanner result={result} />
           <ClauseTable rows={result.eligibility} />
+          <BidReadiness readiness={result.readiness} />
           <BoqTable boq={result.boq} onDownload={() => downloadBoqXlsx(result)} />
           <p className="text-sm text-gray-600">
             You decide: check every fail, unknown and flagged line against the cited page, confirm this is the latest corrigendum,

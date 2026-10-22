@@ -42,7 +42,7 @@ export async function POST(req: Request) {
       raw = await viaN8n({ ...parsed.data, firm, today: todayInIndia() });
     } else if (apiKey && apiKey !== KEY_PLACEHOLDER) {
       mode = "direct";
-      raw = await runDirect(parsed.data.pages, parsed.data.priceRows, apiKey);
+      raw = await runDirect(parsed.data.pages, parsed.data.priceRows, apiKey, parsed.data.supportingDocs);
     } else {
       return fail(503, "No AI connected yet. Paste your Gemini key into .env.local (GEMINI_API_KEY=…) and restart the app.");
     }

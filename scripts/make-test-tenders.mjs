@@ -243,3 +243,38 @@ writeFileSync(
     "HV-MCB-C32-2P,MCB 32A DP C-curve 10kA,Havells,Nos,on request\n",
 );
 console.log(`Tender A: ${a.pages.length} pages, ${a.boqCount} BOQ lines; Tender B: ${b.pages.length} pages, ${b.boqCount} BOQ lines`);
+
+// ---------- Supporting documents for Tender B (made-up, for testing Bid Readiness) ----------
+writeFileSync(
+  `${OUT}/support-B-maf-lnt.pdf`,
+  pdf([
+    [
+      "SAMPLE FOR TESTING - not a real authorization",
+      "Larsen & Toubro Limited, Electrical & Automation",
+      "MANUFACTURER'S AUTHORIZATION FORM",
+      "Ref: LT/EA/MAF/2026/772     Date: 05/11/2026",
+      "To: The Executive Engineer, Electrical Division-IV",
+      "Sub: Authorization for NIT No. 18/EE/ED-IV/2026-27",
+      "We, Larsen & Toubro Limited, manufacturers of LT panels and MCCBs, hereby authorize Shree Ganesh Electricals to quote, supply and support our LT panels and MCCBs against NIT No. 18/EE/ED-IV/2026-27.",
+      "This authorization is valid for the territory of Rajasthan.",
+      "This authorization is valid up to 31/12/2027.",
+      "For Larsen & Toubro Limited",
+      "Anil Kapoor, Regional Manager - Channel Sales",
+    ],
+  ]),
+);
+writeFileSync(
+  `${OUT}/support-B-iso14001-expired.pdf`,
+  pdf([
+    [
+      "SAMPLE FOR TESTING - not a real certificate",
+      "CERTIFICATE OF REGISTRATION",
+      "This is to certify that the Environmental Management System of Shree Ganesh Electricals, Jaipur has been assessed and found to conform to ISO 14001:2015.",
+      "Certificate No: EMS/IN/2093",
+      "Date of issue: 01/06/2023",
+      "Valid until: 31/05/2026",
+      "Issued by: Sample Certification Services Pvt Ltd",
+    ],
+  ]),
+);
+console.log("Wrote support-B-maf-lnt.pdf and support-B-iso14001-expired.pdf");
