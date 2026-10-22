@@ -1,0 +1,15 @@
+sku,description,brand,unit,list_price,discount_pct,rating_kA,poles
+HV-MCB-C06-1P,MCB 6A SP C-curve 10kA,Havells,Nos,240,38,10,1
+HV-MCB-C16-1P,MCB 16A SP C-curve 10kA,Havells,Nos,240,38,10,1
+HV-MCB-C32-1P,MCB 32A SP C-curve 10kA,Havells,Nos,265,38,10,1
+HV-MCB-C32-2P,MCB 32A DP C-curve 10kA,Havells,Nos,690,38,10,2
+HV-MCB-C63-4P,MCB 63A FP C-curve 10kA,Havells,Nos,2150,38,10,4
+HV-RCCB-40-2P,RCCB 40A DP 30mA,Havells,Nos,1980,35,,2
+HV-RCCB-63-4P,RCCB 63A FP 100mA,Havells,Nos,4350,35,,4
+HV-DB-8W-TPN,MCB distribution board 8 way TPN double door,Havells,Nos,5600,30,,
+HV-DB-12W-SPN,MCB distribution board 12 way SPN double door,Havells,Nos,2400,30,,
+HV-MCCB-100-25,MCCB 100A TP 25kA thermal magnetic,Havells,Nos,9800,32,25,3
+HV-MCCB-100-36,MCCB 100A TP 36kA thermal magnetic,Havells,Nos,12600,32,36,3
+HV-MCCB-250-36,MCCB 250A TP 36kA thermal magnetic,Havells,Nos,24500,32,36,3
+HV-LED-PNL-36,LED panel light 36W 2x2 ft recessed,Havells,Nos,2950,40,,
+HV-LED-BAT-20,LED batten 20W 4 ft,Havells,Nos,640,40,,

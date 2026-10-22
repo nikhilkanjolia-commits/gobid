@@ -1,0 +1,25 @@
+{
+  "_note": "Sample firm for the demo. Replace with the real firm's details.",
+  "name": "Shree Ganesh Electricals",
+  "isMSE": true,
+  "avgAnnualTurnoverInr": 32000000,
+  "yearsOfExperience": 6,
+  "pastOrders": [
+    { "title": "LT panel and cabling, PWD Jaipur", "valueInr": 4200000, "completedOn": "2025-11-30" },
+    { "title": "MCB DB supply, Railway workshop Ajmer", "valueInr": 1850000, "completedOn": "2025-03-15" },
+    { "title": "Solar rooftop 50 kWp, Govt school Kota", "valueInr": 2600000, "completedOn": "2024-08-20" }
+  ],
+  "certificates": [
+    { "name": "ISO 9001", "validUntil": "2027-06-30" },
+    { "name": "Electrical Contractor Licence", "validUntil": "2028-03-31" },
+    { "name": "GST Registration", "validUntil": null },
+    { "name": "Udyam Registration", "validUntil": null },
+    { "name": "ISO 14001", "validUntil": "2026-05-31" }
+  ],
+  "oemAuthorizations": [
+    { "brand": "Havells", "categories": ["switchgear", "cables", "lighting"], "validUntil": "2027-03-31" },
+    { "brand": "Polycab", "categories": ["cables"], "validUntil": "2026-12-31" }
+  ],
+  "markupPct": 15,
+  "minMarginPct": 8
+}

@@ -5,6 +5,11 @@ import nextTs from "eslint-config-next/typescript";
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
+  // n8n Code node scripts: their top-level functions are called by n8n, not inside the file.
+  {
+    files: ["n8n/code/**/*.js"],
+    rules: { "@typescript-eslint/no-unused-vars": "off" },
+  },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:

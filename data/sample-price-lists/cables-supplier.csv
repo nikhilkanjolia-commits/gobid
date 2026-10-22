@@ -1,0 +1,12 @@
+sku,description,brand,unit,list_price,discount_pct
+PC-FRLS-1.5,FRLS PVC insulated copper wire 1.5 sqmm single core,Polycab,Mtr,22,45
+PC-FRLS-2.5,FRLS PVC insulated copper wire 2.5 sqmm single core,Polycab,Mtr,35,45
+PC-FRLS-4,FRLS PVC insulated copper wire 4 sqmm single core,Polycab,Mtr,55,45
+PC-FRLS-6,FRLS PVC insulated copper wire 6 sqmm single core,Polycab,Mtr,83,45
+PC-AYFY-4C-16,LT XLPE armoured aluminium cable 4 core 16 sqmm 1.1kV,Polycab,Mtr,210,40
+PC-AYFY-4C-25,LT XLPE armoured aluminium cable 4 core 25 sqmm 1.1kV,Polycab,Mtr,285,40
+PC-AYFY-3.5C-95,LT XLPE armoured aluminium cable 3.5 core 95 sqmm 1.1kV,Polycab,Mtr,780,40
+PC-AYFY-3.5C-185,LT XLPE armoured aluminium cable 3.5 core 185 sqmm 1.1kV,Polycab,Mtr,1420,40
+PC-CU-ARM-4C-6,LT XLPE armoured copper cable 4 core 6 sqmm 1.1kV,Polycab,Mtr,640,40
+PC-PVC-CONDUIT-25,PVC rigid conduit 25 mm medium gauge,Polycab,Mtr,48,30
+PC-GI-EARTH-STRIP,GI earthing strip 25x3 mm,Polycab,Mtr,95,20
