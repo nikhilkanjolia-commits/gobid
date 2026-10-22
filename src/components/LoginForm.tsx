@@ -4,8 +4,8 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { supabaseBrowser } from "@/lib/supabaseBrowser";
 
-// Sign in or sign up with an email code: no passwords. Step 1 sends a 6-digit code to the
-// email; step 2 checks it. New emails get an account automatically.
+// Sign in or sign up by email: no passwords. Step 1 emails a 6-digit code and a sign-in link;
+// step 2 checks the code (or the user clicks the link). New emails get an account automatically.
 export function LoginForm() {
   const router = useRouter();
   const [step, setStep] = useState<"email" | "code">("email");
@@ -28,7 +28,12 @@ export function LoginForm() {
     }
     setBusy(true);
     setMessage(null);
-    const { error } = await sb!.auth.signInWithOtp({ email: clean, options: { shouldCreateUser: true } });
+    // The email has a 6-digit code (once the GoBid email template is set up) and a sign-in link;
+    // the link brings the user back to their alert settings, already signed in.
+    const { error } = await sb!.auth.signInWithOtp({
+      email: clean,
+      options: { shouldCreateUser: true, emailRedirectTo: `${window.location.origin}/alerts` },
+    });
     setBusy(false);
     if (error) {
       setMessage({ ok: false, text: error.message.includes("rate") ? "Too many codes sent. Wait a minute and try again." : `Couldn't send the code: ${error.message}` });
@@ -36,7 +41,10 @@ export function LoginForm() {
     }
     setEmail(clean);
     setStep("code");
-    setMessage({ ok: true, text: `We sent a 6-digit code to ${clean}. It's valid for 1 hour. Check spam if you don't see it.` });
+    setMessage({
+      ok: true,
+      text: `We emailed ${clean}. Type the 6-digit code here, or just click the sign-in link in the email. Check spam if you don't see it.`,
+    });
   }
 
   async function checkCode(e: React.FormEvent) {
