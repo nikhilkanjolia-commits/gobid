@@ -14,6 +14,7 @@ type BoqRow = {
   quote: string;
   verified: boolean;
   verifyNote?: string | null;
+  qtyMismatch?: number;
 };
 type Match = { item: string; sku: string | null; confidence: number; reason?: string };
 type Flag = { level: "red" | "amber"; text: string };
@@ -25,7 +26,8 @@ const { shortlistSkus } = loadN8nCode<{ shortlistSkus: (rows: BoqRow[], price: P
   "shortlist.js",
   ["shortlistSkus"],
 );
-const { checkMatches } = loadN8nCode<{ checkMatches: (rows: BoqRow[], m: Match[], price: PriceRow[], approved: string[]) => Checked[] }>(
+type Group = { itemGroup: string; brands: string[] };
+const { checkMatches } = loadN8nCode<{ checkMatches: (rows: BoqRow[], m: Match[], price: PriceRow[], groups: Group[]) => Checked[] }>(
   "matchChecks.js",
   ["checkMatches"],
 );
@@ -68,7 +70,7 @@ describe("shortlistSkus", () => {
 });
 
 describe("checkMatches", () => {
-  const check = (row: BoqRow, match: Partial<Match> = {}, approved: string[] = []) =>
+  const check = (row: BoqRow, match: Partial<Match> = {}, approved: Group[] = []) =>
     checkMatches([row], [{ item: row.item, sku: null, confidence: 0.95, ...match }], priceRows, approved)[0];
   const texts = (r: Checked) => r.flags.map((f) => f.level + ": " + f.text);
 
@@ -92,10 +94,31 @@ describe("checkMatches", () => {
   });
 
   it("flags an unsure match, a non-approved brand and a unit difference as amber", () => {
-    const r = check(line("1", "LED panel 36W", 4, "Mtr"), { sku: "HV-LED-PNL-36", confidence: 0.55 }, ["Philips", "Wipro"]);
+    const r = check(line("1", "LED panel 36W", 4, "Mtr"), { sku: "HV-LED-PNL-36", confidence: 0.55 }, [{ itemGroup: "LED panel", brands: ["Philips", "Wipro"] }]);
     expect(r.status).toBe("ok");
     expect(r.flags.every((f) => f.level === "amber")).toBe(true);
     expect(r.flags).toHaveLength(3);
+  });
+
+  it("checks approved makes only against the item group a line belongs to", () => {
+    const groups = [
+      { itemGroup: "LT panel", brands: ["L&T"] },
+      { itemGroup: "LT Cables and FRLS Wires", brands: ["Polycab", "KEI"] },
+      { itemGroup: "MCB / RCCB / Distribution Boards", brands: ["Legrand"] },
+    ];
+    // An MCB isn't an LT panel or a cable: only the MCB group applies.
+    expect(texts(check(line("1", "MCB 16A SP C-curve", 5), { sku: "HV-MCB-C16-1P" }, groups))).toEqual([
+      "amber: Havells is not an approved make for MCB / RCCB / Distribution Boards (Legrand)",
+    ]);
+    // "LED panel light" contains "panel" but not "LT", so the LT panel group doesn't apply.
+    expect(check(line("2", "LED panel light 36W 2x2 ft", 5), { sku: "HV-LED-PNL-36" }, groups).flags).toEqual([]);
+    // Polycab cable in the cables group is approved.
+    expect(check(line("3", "LT XLPE armoured aluminium cable 4 core 25 sq mm", 50, "Mtr"), { sku: "PC-AYFY-4C-25" }, groups).flags).toEqual([]);
+  });
+
+  it("flags a quantity the AI read differently from the PDF line", () => {
+    const r = check(line("1", "MCB 16A SP", 15, "Nos", { qtyMismatch: 150 } as Partial<BoqRow>), { sku: "HV-MCB-C16-1P" });
+    expect(texts(r)).toContain("red: AI read quantity 15, but the PDF line says 150");
   });
 
   it("treats no SKU, or a SKU that isn't in the price list, as unmatched (not priced)", () => {

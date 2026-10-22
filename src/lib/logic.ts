@@ -11,6 +11,7 @@ const EXPORTS = [
   "boqRequest",
   "matchRequest",
   "readGeminiJson",
+  "toClauses",
   "uniqueItems",
   "shortlistSkus",
   "finalizeResult",

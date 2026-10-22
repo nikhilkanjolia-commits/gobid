@@ -55,6 +55,73 @@ function verifyQuote(pages, page, quote) {
   return { verified: false, note: "Quote not found on page " + page };
 }
 
+// Units as printed in BOQs, followed by the quantity: "Nos | 120", "Mtr 600", "Set: 1".
+const UNIT_QTY = /(?:^|[\s|:,])(nos?|numbers?|each|sets?|mtrs?|metres?|meters?|rmt|rm|m|kg|lot|job|sqm|cum|ltrs?|pairs?)\.?\s*[|:]?\s*(\d[\d,]*(?:\.\d+)?)(?![\d.]*\s*(?:mm|sq|kv|ka|w|a)\b)/i;
+
+// Same normalization as normalizeForQuote, plus where each normalized character came from in
+// the raw text, so a quote found in normalized text can be located in the original.
+function normalizeWithMap(text) {
+  const raw = String(text || "");
+  let norm = "";
+  const map = [];
+  for (let i = 0; i < raw.length; i++) {
+    const ch = normalizeForQuote(raw[i]);
+    if (ch) {
+      norm += ch;
+      map.push(i);
+    } else if (norm && norm[norm.length - 1] !== " ") {
+      norm += " ";
+      map.push(i);
+    }
+  }
+  return { norm: norm, map: map };
+}
+
+// Plain-code reading of a verified BOQ line: finds where the AI's quote sits on the page and
+// reads the unit and quantity printed right after the description. Short quotes can start
+// several lines ("LT XLPE ... cable 3.5 core"), so each place is scored by how well the printed
+// description after it matches the AI's full description; a tie means we can't tell, and
+// nothing is read. Returns null if the line can't be pinned down or has no unit + number.
+function readBoqLine(pageText, quote, description) {
+  const q = normalizeForQuote(quote);
+  if (!q) return null;
+  const raw = String(pageText);
+  const { norm, map } = normalizeWithMap(raw);
+  const wanted = new Set(normalizeForQuote(description || quote).split(" "));
+  const found = [];
+  for (let at = norm.indexOf(q); at >= 0; at = norm.indexOf(q, at + 1)) {
+    // Whole words only ("6a" must not match inside "16a").
+    if (at > 0 && norm[at - 1] !== " ") continue;
+    const end = map[at + q.length - 1] + 1;
+    const m = raw.slice(end, end + 250).match(UNIT_QTY);
+    if (!m) continue;
+    const between = normalizeForQuote(raw.slice(end, end + m.index)).split(" ").filter(Boolean);
+    const score = between.filter((w) => wanted.has(w)).length - between.filter((w) => !wanted.has(w)).length;
+    found.push({ score: score, unit: m[1], qty: Number(m[2].replace(/,/g, "")) });
+  }
+  if (found.length === 0) return null;
+  found.sort((a, b) => b.score - a.score);
+  if (found.length > 1 && found[0].score === found[1].score && found[0].qty !== found[1].qty) return null;
+  return { unit: found[0].unit, qty: found[0].qty };
+}
+
+// For each verified BOQ row: fill a missing quantity/unit from the printed line, and mark a
+// row whose AI quantity disagrees with the page (kept for checkMatches to flag red).
+function readBoqLines(pages, rows) {
+  const byPage = new Map(pages.map((p) => [p.page, p.text]));
+  return (rows || []).map((r) => {
+    if (!r.verified) return r;
+    const text = (byPage.get(r.page) || "") + "\n" + (byPage.get(r.page + 1) || "");
+    const printed = readBoqLine(text, r.quote, r.description);
+    if (!printed) return r;
+    const out = Object.assign({}, r);
+    if (out.qty == null) out.qty = printed.qty;
+    else if (Math.abs(out.qty - printed.qty) > 1e-9) out.qtyMismatch = printed.qty;
+    if (!out.unit) out.unit = printed.unit;
+    return out;
+  });
+}
+
 // Adds `verified` and `verifyNote` to each item that has { page, quote }.
 function verifyQuotes(pages, items) {
   return (items || []).map((item) => {

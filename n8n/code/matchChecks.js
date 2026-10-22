@@ -67,13 +67,37 @@ function specFlags(boqText, sku) {
   return flags;
 }
 
-// boqRows: AI-extracted BOQ lines after verifyQuotes. matches: [{ item, sku, confidence, reason }]
-// from the AI. priceRows: validated price-list rows. approvedBrands: brands allowed by the
-// tender (empty array if the tender has no approved-makes list).
-function checkMatches(boqRows, matches, priceRows, approvedBrands) {
+const GROUP_STOP_WORDS = new Set(["and", "or", "of", "the", "all", "for", "with", "items", "item", "type"]);
+
+function groupWords(text) {
+  return String(text || "")
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((w) => w && !GROUP_STOP_WORDS.has(w))
+    .map((w) => (w.length > 3 && w.endsWith("s") && !w.endsWith("ss") ? w.slice(0, -1) : w));
+}
+
+// The approved-makes group a BOQ line belongs to, if any. A group name like
+// "MCB / RCCB / Distribution Boards" lists alternatives; a line belongs to the group when
+// every word of one alternative appears in its description ("LT panel" needs both words).
+function groupForLine(description, groups) {
+  const words = new Set(groupWords(description));
+  return (groups || []).find((g) =>
+    String(g.itemGroup || "")
+      .split(/\/|,|\band\b|&(?![a-z])/i)
+      .map(groupWords)
+      .some((alt) => alt.length > 0 && alt.every((w) => words.has(w))),
+  );
+}
+
+// boqRows: AI-extracted BOQ lines after verifyQuotes and readBoqLines. matches:
+// [{ item, sku, confidence, reason }] from the AI. priceRows: validated price-list rows.
+// approvedGroups: [{ itemGroup, brands }] from the tender's approved-makes list ([] if none);
+// a line is only checked against the group it belongs to.
+function checkMatches(boqRows, matches, priceRows, approvedGroups) {
   const skuMap = new Map((priceRows || []).map((p) => [String(p.sku).trim().toLowerCase(), p]));
   const matchMap = new Map((matches || []).map((m) => [String(m.item), m]));
-  const approved = (approvedBrands || []).filter(Boolean);
+  const groups = (approvedGroups || []).filter((g) => g && Array.isArray(g.brands) && g.brands.length);
 
   return (boqRows || []).map((r) => {
     const qty = num(r.qty);
@@ -108,6 +132,9 @@ function checkMatches(boqRows, matches, priceRows, approvedBrands) {
       out.status = "unreliable";
       out.flags.push({ level: "red", text: "Quantity or unit could not be extracted reliably; not priced" });
     }
+    if (r.qtyMismatch != null) {
+      out.flags.push({ level: "red", text: "AI read quantity " + qty + ", but the PDF line says " + r.qtyMismatch });
+    }
     if (qty != null && rate != null && amount != null && Math.abs(qty * rate - amount) > 1) {
       out.flags.push({ level: "red", text: "Printed amount " + amount + " ≠ qty × rate (" + +(qty * rate).toFixed(2) + ")" });
     }
@@ -135,8 +162,9 @@ function checkMatches(boqRows, matches, priceRows, approvedBrands) {
       out.flags.push({ level: "amber", text: "Unsure match (confidence " + (out.confidence == null ? "?" : out.confidence.toFixed(2)) + "); review" });
     }
     out.flags.push(...specFlags(r.description, sku));
-    if (approved.length && !approved.some((b) => sameBrand(b, sku.brand))) {
-      out.flags.push({ level: "amber", text: sku.brand + " is not in the tender's approved makes (" + approved.join(", ") + ")" });
+    const group = groupForLine(r.description, groups);
+    if (group && !group.brands.some((b) => sameBrand(b, sku.brand))) {
+      out.flags.push({ level: "amber", text: sku.brand + " is not an approved make for " + group.itemGroup + " (" + group.brands.join(", ") + ")" });
     }
     if (r.unit && sku.unit && normUnit(r.unit) !== normUnit(sku.unit)) {
       out.flags.push({ level: "amber", text: "Unit differs: tender " + r.unit + ", price list " + sku.unit });

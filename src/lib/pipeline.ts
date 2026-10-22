@@ -39,7 +39,7 @@ export async function runDirect(pages: PageText[], priceRows: PriceRow[], apiKey
   const match = L.matchRequest(boqRows, shortlist);
   const matches = match.lineCount > 0 ? (await ask(match.request, "Matching SKUs")).matches : [];
 
-  return L.finalizeResult({ pages, clauses: eligibility.clauses, boqRows, matches, priceRows, firm, today: todayInIndia() });
+  return L.finalizeResult({ pages, clauses: L.toClauses(eligibility), boqRows, matches, priceRows, firm, today: todayInIndia() });
 }
 
 // Demo mode: a made-up tender with pretend AI answers, through the real decision logic.

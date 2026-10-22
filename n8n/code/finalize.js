@@ -18,11 +18,12 @@ function uniqueItems(rows) {
 function finalizeResult(input) {
   const clauses = verifyQuotes(input.pages, input.clauses || []);
   const eligibility = evaluateEligibility(clauses, input.firm, input.today);
-  const approvedBrands = clauses
+  const approvedGroups = clauses
     .filter((c) => c.type === "approved_makes" && c.verified)
-    .flatMap((c) => ((c.values && c.values.items) || []).flatMap((g) => g.brands || []));
-  const boqRows = verifyQuotes(input.pages, input.boqRows || []);
-  const checked = checkMatches(boqRows, input.matches || [], input.priceRows, approvedBrands);
+    .flatMap((c) => (c.values && c.values.items) || []);
+  // Verify each BOQ line is on its page, then read its printed unit and quantity in code.
+  const boqRows = readBoqLines(input.pages, verifyQuotes(input.pages, input.boqRows || []));
+  const checked = checkMatches(boqRows, input.matches || [], input.priceRows, approvedGroups);
   const boq = priceBoq(checked, input.firm);
   return {
     verdict: decide(eligibility, boq, input.firm),

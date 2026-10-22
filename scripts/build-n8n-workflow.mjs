@@ -68,7 +68,7 @@ const chain = [
   codeNode(
     "Decide",
     `${code("verifyQuotes.js", "rules.js", "matchChecks.js", "pricing.js", "verdict.js", "requests.js", "finalize.js")}\n\n${BODY}\n` +
-      "const clauses = readGeminiJson($('Gemini: eligibility').first().json, 'Reading eligibility clauses').clauses;\n" +
+      "const clauses = toClauses(readGeminiJson($('Gemini: eligibility').first().json, 'Reading eligibility clauses'));\n" +
       "const boqRows = $('A4 request').first().json.boqRows;\n" +
       "const matches = readGeminiJson($('Gemini: match SKUs').first().json, 'Matching SKUs').matches;\n" +
       "return [{ json: finalizeResult({ pages: body.pages, clauses, boqRows, matches, priceRows: body.priceRows, firm: body.firm, today: body.today }) }];",

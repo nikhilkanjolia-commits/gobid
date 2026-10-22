@@ -49,14 +49,24 @@ function row(clause, result, firmHas, reason) {
   };
 }
 
-// Reads the tender's MSE exemption clause (only if its quote was verified).
+// Reads the tender's MSE exemption clauses. Tenders often state the experience/turnover and
+// EMD exemptions in separate lines, so each one comes from whichever verified clause says it.
 function mseExemptions(clauses) {
-  const c = clauses.find((x) => x.type === "mse_exemption" && x.verified);
-  const v = (c && c.values) || {};
-  return {
-    experienceAndTurnover: v.experienceAndTurnover === true ? c : null,
-    emd: v.emd === true ? c : null,
-  };
+  const verified = clauses.filter((x) => x.type === "mse_exemption" && x.verified);
+  const grants = (key) => verified.find((c) => c.values && c.values[key] === true) || null;
+  return { experienceAndTurnover: grants("experienceAndTurnover"), emd: grants("emd") };
+}
+
+const NUMBER_WORDS = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10 };
+
+// "during the last seven years" sets a look-back window for past works, not a minimum
+// experience. True when `years` is just that window.
+function isLookbackYears(c, years) {
+  const v = c.values || {};
+  if (v.lookbackYears === years) return true;
+  const m = String(c.quote || "").toLowerCase().match(/(?:during|in|within)\s+the\s+(?:last|preceding|past)\s+(\d+|[a-z]+)\s+(?:\(\w+\)\s+)?years?/);
+  if (!m) return false;
+  return (/^\d+$/.test(m[1]) ? Number(m[1]) : NUMBER_WORDS[m[1]]) === years;
 }
 
 function checkTurnover(c, firm, exempt) {
@@ -81,12 +91,13 @@ function checkExperience(c, firm, exempt) {
   const has = firm.yearsOfExperience + " years, " + orders.length + " past orders";
   if (v.notRequired === true) return row(c, "pass", has, "Tender sets no experience requirement");
   const options = Array.isArray(v.orderOptions) ? v.orderOptions.filter((o) => isNum(o.count) && isNum(o.eachAtLeastInr)) : [];
-  if (!isNum(v.years) && options.length === 0) {
+  const years = isNum(v.years) && !isLookbackYears(c, v.years) ? v.years : null;
+  if (years == null && options.length === 0) {
     return row(c, "unknown", has, "Experience requirement could not be read from the tender");
   }
   const problems = [];
-  if (isNum(v.years) && firm.yearsOfExperience < v.years) {
-    problems.push("needs " + v.years + " years, firm has " + firm.yearsOfExperience);
+  if (years != null && firm.yearsOfExperience < years) {
+    problems.push("needs " + years + " years, firm has " + firm.yearsOfExperience);
   }
   if (options.length > 0) {
     const met = options.some((o) => orders.filter((x) => x.valueInr >= o.eachAtLeastInr).length >= o.count);

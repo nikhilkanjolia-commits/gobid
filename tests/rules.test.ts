@@ -118,6 +118,35 @@ describe("evaluateEligibility", () => {
     expect(rows({ orderOptions: [{ count: 2, eachAtLeastInr: 3000000 }] }).result).toBe("fail");
   });
 
+  it("does not treat a look-back window ('during the last seven years') as years of experience", () => {
+    const quote =
+      "The bidder should have satisfactorily completed during the last seven years: three similar works each of value not less than Rs. 20.00 Lakh, or one similar work of value not less than Rs. 40.00 Lakh.";
+    const options = [{ count: 3, eachAtLeastInr: 2000000 }, { count: 1, eachAtLeastInr: 4000000 }];
+    const exp = (values: Record<string, unknown>) => {
+      const c = passingCore();
+      c[2] = clause("experience", values, { quote });
+      return only(evaluateEligibility(c, firm, TODAY), "experience");
+    };
+    // The AI wrongly put the 7-year window in `years` (Tender B's failure): ignored, decided on the orders.
+    expect(exp({ years: 7, orderOptions: options }).result).toBe("pass");
+    // Same, when the AI puts it in lookbackYears as asked.
+    expect(exp({ years: null, lookbackYears: 7, orderOptions: options }).result).toBe("pass");
+    // A real minimum-years requirement still counts.
+    const real = passingCore();
+    real[2] = clause("experience", { years: 7 }, { quote: "Years of Past Experience Required: 7 Year(s)" });
+    expect(only(evaluateEligibility(real, firm, TODAY), "experience").result).toBe("fail");
+  });
+
+  it("reads EMD and experience/turnover exemptions from separate MSE clauses", () => {
+    const clauses = [
+      ...passingCore(),
+      clause("mse_exemption", { experienceAndTurnover: true, emd: null }, { page: 2 }),
+      clause("mse_exemption", { experienceAndTurnover: null, emd: true }, { page: 3 }),
+    ];
+    const emd = only(evaluateEligibility(clauses, firm, TODAY), "emd");
+    expect(emd.reason).toBe("EMD exempt for MSEs (p. 3)");
+  });
+
   it("checks OEM authorization brand and expiry", () => {
     const oem = (values: Record<string, unknown>, today = TODAY) => {
       const c = passingCore();
