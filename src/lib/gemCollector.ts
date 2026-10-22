@@ -31,11 +31,13 @@ function loadGem(): Gem {
 
 export type SaveResult = { received: number; new: number; updated: number };
 
+export type KeywordPlan = { keyword: string; pages: number };
+
 export type CollectOptions = {
   fetch?: typeof fetch;
   save: (rows: unknown[], requests: number) => Promise<SaveResult>;
-  keywords?: string[];
-  pages?: number;
+  // What to search, from the search_keywords table. Without it, gem.js's built-in list is used.
+  plan?: KeywordPlan[];
   gapMs?: number;
 };
 
@@ -56,7 +58,9 @@ export async function collectGemBids(opts: CollectOptions) {
   const page = await f(`${G.GEM_BASE}/all-bids`, { headers: { "user-agent": G.GEM_USER_AGENT }, signal: AbortSignal.timeout(20_000) });
   if (!page.ok) throw new Error(`GeM All Bids page answered ${page.status}`);
   const session = G.readGemSession(await page.text(), page.headers.getSetCookie());
-  const searches = G.buildGemSearches(session, opts.keywords, opts.pages);
+  const searches = opts.plan?.length
+    ? opts.plan.flatMap((k) => G.buildGemSearches(session, [k.keyword], k.pages))
+    : G.buildGemSearches(session);
 
   const lists: unknown[][] = [];
   for (const [i, s] of searches.entries()) {

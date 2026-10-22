@@ -1,5 +1,5 @@
 import { timingSafeEqual } from "node:crypto";
-import { collectGemBids, probeGem, type SaveResult } from "@/lib/gemCollector";
+import { collectGemBids, probeGem, type KeywordPlan, type SaveResult } from "@/lib/gemCollector";
 import { callSupabaseFunction } from "@/lib/supabase";
 
 // POST /api/gem/collect: runs one GeM collection and saves it to Supabase. Called every hour
@@ -31,14 +31,18 @@ export async function POST(req: Request) {
     if (new URL(req.url).searchParams.get("probe") === "1") {
       return Response.json({ region, gem: await probeGem() });
     }
+    // Keywords come from the search_keywords table (editable on the Settings page).
+    // If that table isn't set up yet (002_categories_filters.sql not run), use the built-in list.
+    const plan = (await callSupabaseFunction<KeywordPlan[]>("get_collect_keywords", {}).catch(() => null)) ?? undefined;
     const result = await collectGemBids({
+      plan,
       save: async (rows, requests) => {
         const saved = await callSupabaseFunction<SaveResult>("upsert_gem_tenders", { rows, requests });
         if (!saved) throw new Error("Supabase isn't set up: add SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.");
         return saved;
       },
     });
-    return Response.json({ region, ...result });
+    return Response.json({ region, keywords: plan?.length ?? "built-in list", ...result });
   } catch (e) {
     const err = e as Error & { cause?: { code?: string } };
     const why = err.cause?.code ? `${err.message} (${err.cause.code})` : err.message;

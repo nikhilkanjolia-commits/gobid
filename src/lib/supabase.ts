@@ -16,5 +16,7 @@ export async function callSupabaseFunction<T>(name: string, args: Record<string,
     const detail = await res.text().catch(() => "");
     throw new Error(`Supabase ${name} failed (${res.status}): ${detail.slice(0, 200)}`);
   }
-  return (await res.json()) as T;
+  // Functions that return nothing answer with an empty body.
+  const text = await res.text();
+  return (text ? JSON.parse(text) : {}) as T;
 }

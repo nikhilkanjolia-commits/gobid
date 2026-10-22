@@ -123,6 +123,18 @@ describe("collectGemBids (what /api/gem/collect runs)", () => {
     expect(result).toMatchObject({ received: 10, new: 10, updated: 0, requests: calls.length });
   });
 
+  it("searches the keywords and page counts from the database when given", async () => {
+    const { f, calls } = fakeGem();
+    await collectGemBids({
+      fetch: f,
+      gapMs: 0,
+      plan: [{ keyword: "battery", pages: 1 }, { keyword: "solar", pages: 3 }],
+      save: async (rows) => ({ received: rows.length, new: 0, updated: 0 }),
+    });
+    const searched = calls.slice(1).map(() => null);
+    expect(searched).toHaveLength(4); // battery ×1 + solar ×3
+  });
+
   it("stops with a clear error if GeM refuses a search, and saves nothing", async () => {
     let n = 0;
     const f = (async (url: string) => {
