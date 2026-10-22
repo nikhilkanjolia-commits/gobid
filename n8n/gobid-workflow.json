@@ -2,7 +2,7 @@
   "name": "GoBid analyze",
   "nodes": [
     {
-      "id": "34ff9b2a-8483-4fa6-b59e-1f2c4046f267",
+      "id": "dbb16fc8-ccd6-4c71-bb66-bc71cee0cfc9",
       "position": [
         0,
         0
@@ -19,7 +19,7 @@
       }
     },
     {
-      "id": "a9980b03-8c64-4fd4-a542-1cc081e0f85e",
+      "id": "d902a0e9-1761-48f5-a3cf-67d68476b6cf",
       "position": [
         220,
         0
@@ -32,7 +32,7 @@
       }
     },
     {
-      "id": "d662ecdf-abea-4d92-ab98-483be3d70720",
+      "id": "7ffc5641-fedc-4f64-ae85-0233d67fde22",
       "position": [
         440,
         0
@@ -57,7 +57,7 @@
       }
     },
     {
-      "id": "93e940b9-75aa-4d54-b927-e2f1e70e7d42",
+      "id": "203f7bf5-ac5b-40bb-97e8-629bb9dca881",
       "position": [
         660,
         0
@@ -70,7 +70,7 @@
       }
     },
     {
-      "id": "ae3fb5c5-13bf-4c8f-89c4-8c00dab5ebac",
+      "id": "e8c09cff-614d-430d-ad78-e465096111fa",
       "position": [
         880,
         0
@@ -95,7 +95,7 @@
       }
     },
     {
-      "id": "4b37f5bf-fa5b-45bd-bd77-3666ac8a0966",
+      "id": "04143832-d7f3-48da-98b9-b35f7edceb74",
       "position": [
         1100,
         0
@@ -108,7 +108,7 @@
       }
     },
     {
-      "id": "1cf57b71-294e-4a1b-a3e3-cc2e606bc082",
+      "id": "eab04908-be81-463f-b835-e99504098348",
       "position": [
         1320,
         0
@@ -133,7 +133,7 @@
       }
     },
     {
-      "id": "6f7b180e-c3b5-4a73-a715-c4fcdf64d9a8",
+      "id": "f87202db-03f1-4225-940c-b5f69821e01e",
       "position": [
         1540,
         0
@@ -146,7 +146,7 @@
       }
     },
     {
-      "id": "ec290b43-c334-4775-81a0-86a4abf9e9a7",
+      "id": "ff1b11da-cefc-4e9b-8f4e-474dd0f5c1ba",
       "position": [
         1760,
         0
@@ -171,7 +171,7 @@
       }
     },
     {
-      "id": "132cbc49-bc39-4ddd-9102-0658f489cafe",
+      "id": "29b68a8c-4fea-46c9-8d65-7324f3511e20",
       "position": [
         1980,
         0
@@ -184,7 +184,7 @@
       }
     },
     {
-      "id": "ec8b381c-5781-4626-b856-7a48dba58c6a",
+      "id": "5b7fc202-9706-4439-83be-d8befdea489e",
       "position": [
         2200,
         0

@@ -1,0 +1,199 @@
+{
+  "name": "GoBid GeM collector",
+  "nodes": [
+    {
+      "id": "723c30da-6521-46c1-916e-7eaf2ad13bf8",
+      "position": [
+        0,
+        0
+      ],
+      "name": "Every hour",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 1
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "24839aff-991e-471b-9138-75ae0c8ee4ad",
+      "position": [
+        220,
+        0
+      ],
+      "name": "GeM: open All Bids page",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "parameters": {
+        "method": "GET",
+        "url": "https://bidplus.gem.gov.in/all-bids",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "{\"user-agent\":\"GoBid/0.1 (tender search for small electrical contractors)\"}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "responseFormat": "text"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "7c7bba86-af06-4a82-8708-6210b5832c90",
+      "position": [
+        440,
+        0
+      ],
+      "name": "Plan searches",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "// Reads GeM's public \"All Bids\" search (bidplus.gem.gov.in/all-bids) — the same request the\n// public page makes, no login and no captcha — and turns results into rows for the database.\n// Plain script: pasted into n8n Code nodes and loaded the same way by the tests.\n\nconst GEM_BASE = \"https://bidplus.gem.gov.in\";\nconst GEM_USER_AGENT = \"GoBid/0.1 (tender search for small electrical contractors)\";\n\n// Searched newest-first every run. GeM's search matches item names and specs.\nconst GEM_KEYWORDS = [\n  \"MCB\", \"MCCB\", \"RCCB\", \"ACB\", \"LT panel\", \"distribution board\", \"switchgear\", \"cable\", \"wire\",\n  \"LED\", \"street light\", \"high mast\", \"solar\", \"transformer\", \"earthing\", \"electrical\", \"UPS\", \"inverter\",\n];\nconst GEM_PAGES_PER_KEYWORD = 2; // 10 bids per page\n// Delay between requests to GeM, in ms (n8n's HTTP node uses this as its batch interval).\nconst GEM_REQUEST_GAP_MS = 2000;\n\n// From the all-bids page: the CSRF token the search needs, and the session cookies.\n// setCookies: the page response's Set-Cookie header (string or array).\nfunction readGemSession(html, setCookies) {\n  const csrf = (String(html || \"\").match(/'csrf_bd_gem_nk'\\s*:\\s*'([0-9a-f]+)'/) || [])[1];\n  if (!csrf) throw new Error(\"GeM page changed: CSRF token not found\");\n  const list = Array.isArray(setCookies) ? setCookies : String(setCookies || \"\").split(/,(?=\\s*[A-Za-z0-9_]+=)/);\n  const cookie = list.map((c) => String(c).split(\";\")[0].trim()).filter(Boolean).join(\"; \");\n  return { csrf: csrf, cookie: cookie };\n}\n\n// One search request per keyword per page, newest bids first.\nfunction buildGemSearches(session, keywords, pages) {\n  const out = [];\n  for (const keyword of keywords || GEM_KEYWORDS) {\n    for (let page = 1; page <= (pages || GEM_PAGES_PER_KEYWORD); page++) {\n      const payload = {\n        page: page,\n        param: { searchBid: keyword, searchType: \"fullText\" },\n        filter: { bidStatusType: \"ongoing_bids\", byType: \"all\", highBidValue: \"\", byEndDate: { from: \"\", to: \"\" }, sort: \"Bid-Start-Date-Latest\" },\n      };\n      out.push({\n        keyword: keyword,\n        page: page,\n        url: GEM_BASE + \"/all-bids-data\",\n        headers: {\n          \"user-agent\": GEM_USER_AGENT,\n          \"content-type\": \"application/x-www-form-urlencoded; charset=UTF-8\",\n          \"x-requested-with\": \"XMLHttpRequest\",\n          referer: GEM_BASE + \"/all-bids\",\n          cookie: session.cookie,\n        },\n        body: \"payload=\" + encodeURIComponent(JSON.stringify(payload)) + \"&csrf_bd_gem_nk=\" + encodeURIComponent(session.csrf),\n      });\n    }\n  }\n  return out;\n}\n\nfunction first(v) {\n  return Array.isArray(v) ? v[0] : v;\n}\n\n// GeM sends \"2026-10-24T14:00:00Z\" but means 2:00 PM India time (its own page shows the\n// UTC fields as-is), so the \"Z\" is replaced with +05:30.\nfunction gemTime(v) {\n  const s = first(v);\n  if (!s) return null;\n  return String(s).replace(/Z$/, \"+05:30\");\n}\n\nfunction documentPath(d) {\n  const type = Number(first(d.b_bid_type));\n  if (type === 5) return \"/showdirectradocumentPdf/\";\n  if (type === 2) return Number(first(d.b_eval_type)) > 0 ? \"/list-ra-schedules/\" : \"/showradocumentPdf/\";\n  return \"/showbidDocument/\";\n}\n\n// One search reply → normalized bid rows. Throws if GeM answered with an error.\nfunction parseGemSearch(reply, keyword) {\n  if (!reply || Number(reply.code) !== 200 || !reply.response || !reply.response.response) {\n    throw new Error(\"GeM search for '\" + keyword + \"' failed (code \" + (reply && reply.code) + \")\");\n  }\n  return (reply.response.response.docs || [])\n    .map((d) => {\n      const bidNumber = first(d.b_bid_number);\n      const gemId = first(d.b_id);\n      if (!bidNumber || gemId == null) return null;\n      const type = Number(first(d.b_bid_type));\n      return {\n        bid_number: String(bidNumber),\n        gem_bid_id: Number(gemId),\n        bid_kind: type === 2 || type === 5 ? \"RA\" : \"BID\",\n        parent_bid_number: first(d.b_bid_number_parent) || null,\n        items: String(first(d.b_category_name) || \"\").trim(),\n        quantity: first(d.b_total_quantity) == null ? null : Number(first(d.b_total_quantity)),\n        ministry: first(d.ba_official_details_minName) || null,\n        department: first(d.ba_official_details_deptName) || null,\n        starts_at: gemTime(d.final_start_date_sort),\n        ends_at: gemTime(d.final_end_date_sort),\n        is_high_value: Number(first(d.is_high_value)) === 1,\n        has_boq: Number(first(d.bd_details_is_boq)) === 1,\n        document_url: GEM_BASE + documentPath(d) + gemId,\n        matched_keywords: [keyword],\n      };\n    })\n    .filter(Boolean);\n}\n\n// Joins rows from all searches: one row per bid, with every keyword that found it.\nfunction mergeGemBids(rowLists) {\n  const byNumber = new Map();\n  for (const row of [].concat.apply([], rowLists || [])) {\n    const seen = byNumber.get(row.bid_number);\n    if (!seen) byNumber.set(row.bid_number, Object.assign({}, row, { matched_keywords: row.matched_keywords.slice() }));\n    else for (const k of row.matched_keywords) if (!seen.matched_keywords.includes(k)) seen.matched_keywords.push(k);\n  }\n  return Array.from(byNumber.values());\n}\n\n// Rows ready for the Supabase upsert, stamped with this run's time.\nfunction toTenderRows(bids, nowIso) {\n  return bids.map((b) => Object.assign({ source: \"gem\", last_seen_at: nowIso }, b));\n}\n\n\nconst page = $input.first().json;\nconst session = readGemSession(page.body !== undefined ? page.body : page.data, page.headers['set-cookie']);\nreturn buildGemSearches(session).map((s) => ({ json: s }));"
+      }
+    },
+    {
+      "id": "abb5372c-3eb9-4489-b06b-562380aa6522",
+      "position": [
+        660,
+        0
+      ],
+      "name": "GeM: search bids",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.url }}",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "={{ JSON.stringify($json.headers) }}",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/x-www-form-urlencoded",
+        "body": "={{ $json.body }}",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 2000
+            }
+          },
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "2f21c510-cd2a-46db-947e-538d87123de9",
+      "position": [
+        880,
+        0
+      ],
+      "name": "Merge bids",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "// Reads GeM's public \"All Bids\" search (bidplus.gem.gov.in/all-bids) — the same request the\n// public page makes, no login and no captcha — and turns results into rows for the database.\n// Plain script: pasted into n8n Code nodes and loaded the same way by the tests.\n\nconst GEM_BASE = \"https://bidplus.gem.gov.in\";\nconst GEM_USER_AGENT = \"GoBid/0.1 (tender search for small electrical contractors)\";\n\n// Searched newest-first every run. GeM's search matches item names and specs.\nconst GEM_KEYWORDS = [\n  \"MCB\", \"MCCB\", \"RCCB\", \"ACB\", \"LT panel\", \"distribution board\", \"switchgear\", \"cable\", \"wire\",\n  \"LED\", \"street light\", \"high mast\", \"solar\", \"transformer\", \"earthing\", \"electrical\", \"UPS\", \"inverter\",\n];\nconst GEM_PAGES_PER_KEYWORD = 2; // 10 bids per page\n// Delay between requests to GeM, in ms (n8n's HTTP node uses this as its batch interval).\nconst GEM_REQUEST_GAP_MS = 2000;\n\n// From the all-bids page: the CSRF token the search needs, and the session cookies.\n// setCookies: the page response's Set-Cookie header (string or array).\nfunction readGemSession(html, setCookies) {\n  const csrf = (String(html || \"\").match(/'csrf_bd_gem_nk'\\s*:\\s*'([0-9a-f]+)'/) || [])[1];\n  if (!csrf) throw new Error(\"GeM page changed: CSRF token not found\");\n  const list = Array.isArray(setCookies) ? setCookies : String(setCookies || \"\").split(/,(?=\\s*[A-Za-z0-9_]+=)/);\n  const cookie = list.map((c) => String(c).split(\";\")[0].trim()).filter(Boolean).join(\"; \");\n  return { csrf: csrf, cookie: cookie };\n}\n\n// One search request per keyword per page, newest bids first.\nfunction buildGemSearches(session, keywords, pages) {\n  const out = [];\n  for (const keyword of keywords || GEM_KEYWORDS) {\n    for (let page = 1; page <= (pages || GEM_PAGES_PER_KEYWORD); page++) {\n      const payload = {\n        page: page,\n        param: { searchBid: keyword, searchType: \"fullText\" },\n        filter: { bidStatusType: \"ongoing_bids\", byType: \"all\", highBidValue: \"\", byEndDate: { from: \"\", to: \"\" }, sort: \"Bid-Start-Date-Latest\" },\n      };\n      out.push({\n        keyword: keyword,\n        page: page,\n        url: GEM_BASE + \"/all-bids-data\",\n        headers: {\n          \"user-agent\": GEM_USER_AGENT,\n          \"content-type\": \"application/x-www-form-urlencoded; charset=UTF-8\",\n          \"x-requested-with\": \"XMLHttpRequest\",\n          referer: GEM_BASE + \"/all-bids\",\n          cookie: session.cookie,\n        },\n        body: \"payload=\" + encodeURIComponent(JSON.stringify(payload)) + \"&csrf_bd_gem_nk=\" + encodeURIComponent(session.csrf),\n      });\n    }\n  }\n  return out;\n}\n\nfunction first(v) {\n  return Array.isArray(v) ? v[0] : v;\n}\n\n// GeM sends \"2026-10-24T14:00:00Z\" but means 2:00 PM India time (its own page shows the\n// UTC fields as-is), so the \"Z\" is replaced with +05:30.\nfunction gemTime(v) {\n  const s = first(v);\n  if (!s) return null;\n  return String(s).replace(/Z$/, \"+05:30\");\n}\n\nfunction documentPath(d) {\n  const type = Number(first(d.b_bid_type));\n  if (type === 5) return \"/showdirectradocumentPdf/\";\n  if (type === 2) return Number(first(d.b_eval_type)) > 0 ? \"/list-ra-schedules/\" : \"/showradocumentPdf/\";\n  return \"/showbidDocument/\";\n}\n\n// One search reply → normalized bid rows. Throws if GeM answered with an error.\nfunction parseGemSearch(reply, keyword) {\n  if (!reply || Number(reply.code) !== 200 || !reply.response || !reply.response.response) {\n    throw new Error(\"GeM search for '\" + keyword + \"' failed (code \" + (reply && reply.code) + \")\");\n  }\n  return (reply.response.response.docs || [])\n    .map((d) => {\n      const bidNumber = first(d.b_bid_number);\n      const gemId = first(d.b_id);\n      if (!bidNumber || gemId == null) return null;\n      const type = Number(first(d.b_bid_type));\n      return {\n        bid_number: String(bidNumber),\n        gem_bid_id: Number(gemId),\n        bid_kind: type === 2 || type === 5 ? \"RA\" : \"BID\",\n        parent_bid_number: first(d.b_bid_number_parent) || null,\n        items: String(first(d.b_category_name) || \"\").trim(),\n        quantity: first(d.b_total_quantity) == null ? null : Number(first(d.b_total_quantity)),\n        ministry: first(d.ba_official_details_minName) || null,\n        department: first(d.ba_official_details_deptName) || null,\n        starts_at: gemTime(d.final_start_date_sort),\n        ends_at: gemTime(d.final_end_date_sort),\n        is_high_value: Number(first(d.is_high_value)) === 1,\n        has_boq: Number(first(d.bd_details_is_boq)) === 1,\n        document_url: GEM_BASE + documentPath(d) + gemId,\n        matched_keywords: [keyword],\n      };\n    })\n    .filter(Boolean);\n}\n\n// Joins rows from all searches: one row per bid, with every keyword that found it.\nfunction mergeGemBids(rowLists) {\n  const byNumber = new Map();\n  for (const row of [].concat.apply([], rowLists || [])) {\n    const seen = byNumber.get(row.bid_number);\n    if (!seen) byNumber.set(row.bid_number, Object.assign({}, row, { matched_keywords: row.matched_keywords.slice() }));\n    else for (const k of row.matched_keywords) if (!seen.matched_keywords.includes(k)) seen.matched_keywords.push(k);\n  }\n  return Array.from(byNumber.values());\n}\n\n// Rows ready for the Supabase upsert, stamped with this run's time.\nfunction toTenderRows(bids, nowIso) {\n  return bids.map((b) => Object.assign({ source: \"gem\", last_seen_at: nowIso }, b));\n}\n\n\nconst plans = $('Plan searches').all();\nconst lists = $input.all().map((reply, i) => parseGemSearch(reply.json, plans[i].json.keyword));\nreturn [{ json: { rows: toTenderRows(mergeGemBids(lists), new Date().toISOString()), requests: plans.length + 1 } }];"
+      }
+    },
+    {
+      "id": "d7d80baa-77f9-4171-906a-0cf1255891ff",
+      "position": [
+        1100,
+        0
+      ],
+      "name": "Supabase: save bids",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "parameters": {
+        "method": "POST",
+        "url": "https://YOUR-PROJECT.supabase.co/rest/v1/rpc/upsert_gem_tenders",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "Every hour": {
+      "main": [
+        [
+          {
+            "node": "GeM: open All Bids page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GeM: open All Bids page": {
+      "main": [
+        [
+          {
+            "node": "Plan searches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Plan searches": {
+      "main": [
+        [
+          {
+            "node": "GeM: search bids",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GeM: search bids": {
+      "main": [
+        [
+          {
+            "node": "Merge bids",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge bids": {
+      "main": [
+        [
+          {
+            "node": "Supabase: save bids",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
