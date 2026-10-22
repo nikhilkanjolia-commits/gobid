@@ -1,0 +1,42 @@
+{
+  "_note": "Hand-checked answers for the sample firm in data/firm-profile.json. Written before running the app.",
+  "tender-A-gem-hospital-150p.pdf": {
+    "pages": 150,
+    "eligibility": {
+      "turnover": { "result": "pass", "page": 2, "why": "Needs ₹60 lakh; firm has ₹3.2 crore" },
+      "experience": { "result": "pass", "page": 2, "why": "Needs 3 years; firm has 6" },
+      "emd": { "result": "pass", "page": 3, "why": "₹97,200, but MSEs with Udyam are exempt and the firm is an MSE" },
+      "oem_authorization": { "result": "pass", "page": 86, "why": "MAF from Havells / Legrand / Schneider; firm holds a valid Havells MAF" },
+      "certificate ISO 9001": { "result": "pass", "page": 86 },
+      "certificate Electrical Contractor Licence": { "result": "pass", "page": 86 },
+      "approved_makes": { "result": "pass", "page": 131, "why": "Havells or Polycab allowed in every group except conduits (Polycab allowed)" }
+    },
+    "boq": {
+      "lines": 28,
+      "should_be_unmatched": ["25 copper plate earth pit", "26 GI cable tray", "27 street light pole"],
+      "should_be_red": ["12 MCCB 100A TP 50kA (best SKU is 36 kA)"],
+      "expected_cost_total_inr_for_25_matched_lines": 1485974.20,
+      "cost_total_note": "Includes line 12 priced at the 36 kA SKU (HV-MCCB-100-36); computed independently as qty × list × (1 − discount)"
+    },
+    "verdict": "REVIEW NEEDED (eligibility all pass, but 1 red line and 3 unpriced lines)"
+  },
+  "tender-B-cpwd-polytechnic-64p.pdf": {
+    "pages": 64,
+    "eligibility": {
+      "experience": { "result": "pass", "page": 2, "why": "One work ≥ ₹40 lakh: firm has ₹42 lakh" },
+      "turnover": { "result": "pass", "page": 2, "why": "Needs ₹1.2 crore; firm has ₹3.2 crore" },
+      "certificate ISO 14001": { "result": "fail", "page": 2, "why": "Firm's ISO 14001 expired 2026-05-31" },
+      "certificate Electrical Contractor Licence": { "result": "pass", "page": 2 },
+      "emd": { "result": "pass", "page": 3, "why": "Arrange ₹62,800; no MSE exemption" },
+      "oem_authorization": { "result": "fail", "page": 24, "why": "Needs L&T authorisation; firm holds Havells, Polycab" }
+    },
+    "boq": {
+      "lines": 14,
+      "should_be_unmatched": ["14 cubicle LT panel 400A"],
+      "should_be_red": ["7 LED panel: printed amount ≠ qty × rate (off by ₹10,000)"]
+    },
+    "verdict": "NO-GO (ISO 14001 expired p.2; L&T authorisation p.24)"
+  },
+  "bad-scanned-tender.pdf": { "expected": "Error 'looks scanned', no AI call, Analyze stays disabled" },
+  "bad-price-list.csv": { "expected": "Errors naming the missing discount_pct column; Analyze stays disabled" }
+}
