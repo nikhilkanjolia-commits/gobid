@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
+import { AuthButton } from "@/components/AuthButton";
 import { NavTabs } from "@/components/NavTabs";
 import "./globals.css";
 
@@ -32,6 +33,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               GoBid
             </Link>
             <NavTabs />
+            <div className="ml-auto py-2">
+              <AuthButton />
+            </div>
           </div>
         </header>
         {children}

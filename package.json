@@ -13,6 +13,7 @@
     "gem:collect": "node --env-file=.env.local scripts/gem-collect.mjs"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.118.0",
     "exceljs": "^4.4.0",
     "next": "16.4.2",
     "papaparse": "^5.7.0",

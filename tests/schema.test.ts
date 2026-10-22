@@ -20,6 +20,9 @@ beforeAll(async () => {
   await db.exec("create role anon; create role authenticated; create role service_role;");
   await db.exec(readFileSync("supabase/schema.sql", "utf8"));
   await db.exec(readFileSync("supabase/002_categories_filters.sql", "utf8"));
+  // Supabase provides auth.users; a minimal stand-in for the tests.
+  await db.exec("create schema auth; create table auth.users (id uuid primary key, email text);");
+  await db.exec(readFileSync("supabase/003_user_alerts.sql", "utf8"));
 }, 60_000);
 
 async function save(rows: Record<string, unknown>[]) {
@@ -166,5 +169,52 @@ describe("supabase/002_categories_filters.sql", () => {
     // The search text narrows every count.
     const narrowed = await facets("q => 'zzznotathing', tab => 'live'");
     expect(narrowed.tabs.all).toBe(0);
+  });
+});
+
+describe("supabase/003_user_alerts.sql", () => {
+  const U1 = "11111111-1111-1111-1111-111111111111";
+  const U2 = "22222222-2222-2222-2222-222222222222";
+  type Recipient = { user_id: string; email: string; unsubscribe_token: string };
+
+  it("saves and reads a user's alert choices", async () => {
+    await db.exec(`insert into auth.users values ('${U1}', 'a@x.in'), ('${U2}', 'b@x.in')`);
+    await db.query("select save_user_alerts($1, 'a@x.in', array['Switchgear'], array[]::text[], true)", [U1]);
+    await db.query("select save_user_alerts($1, 'b@x.in', array[]::text[], array[]::text[], true)", [U2]);
+    const a = (await db.query<{ categories: string[]; enabled: boolean }>("select * from get_user_alerts($1)", [U1])).rows[0];
+    expect(a).toMatchObject({ categories: ["Switchgear"], enabled: true });
+  });
+
+  it("only emails users with something chosen, and not twice within 20 hours", async () => {
+    let r = (await db.query<Recipient>("select * from get_digest_recipients()")).rows;
+    expect(r.map((x) => x.email)).toEqual(["a@x.in"]); // b chose nothing
+    await db.query("select mark_digest_sent($1)", [U1]);
+    r = (await db.query<Recipient>("select * from get_digest_recipients()")).rows;
+    expect(r).toEqual([]);
+    await db.query("update user_alerts set last_sent_at = now() - interval '21 hours' where user_id = $1", [U1]);
+    expect((await db.query<Recipient>("select * from get_digest_recipients()")).rows).toHaveLength(1);
+  });
+
+  it("finds new and closing-soon bids for the chosen categories or keywords", async () => {
+    // From the 002 tests: 9 bids open (2 closing within a day), all found by "MCCB" (Switchgear).
+    await db.query("update tenders set first_seen_at = now() - interval '2 hours' where bid_number in (select bid_number from tenders where ends_at > now() order by bid_number limit 3)");
+    const rows = (await db.query<{ section: string }>("select section from digest_tenders(array['Switchgear'], array[]::text[], now() - interval '1 day')")).rows;
+    expect(rows.filter((x) => x.section === "new")).toHaveLength(3);
+    expect(rows.filter((x) => x.section === "closing_soon")).toHaveLength(2);
+    expect((await db.query("select * from digest_tenders(array['Lighting'], array[]::text[], null)")).rows).toEqual([]);
+    expect((await db.query("select * from digest_tenders(array[]::text[], array['MCCB'], now() - interval '1 day')")).rows.length).toBe(5);
+  });
+
+  it("unsubscribes with the email link's token", async () => {
+    const token = (await db.query<{ unsubscribe_token: string }>("select unsubscribe_token from user_alerts where user_id = $1", [U1])).rows[0].unsubscribe_token;
+    const off = (await db.query<{ e: string }>("select unsubscribe_alerts($1) as e", [token])).rows[0].e;
+    expect(off).toBe("a@x.in");
+    expect((await db.query<{ e: string | null }>("select unsubscribe_alerts('00000000-0000-0000-0000-000000000000') as e")).rows[0].e).toBeNull();
+    expect((await db.query<Recipient>("select * from get_digest_recipients()")).rows).toEqual([]);
+  });
+
+  it("deletes a user's alerts when their account is deleted", async () => {
+    await db.query("delete from auth.users where id = $1", [U2]);
+    expect((await db.query("select * from user_alerts where user_id = $1", [U2])).rows).toEqual([]);
   });
 });

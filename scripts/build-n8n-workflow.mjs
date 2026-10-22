@@ -79,12 +79,12 @@ const chain = [
 ];
 
 // Links the nodes one after another and writes the workflow file.
-function writeChain(name, file, chain) {
+function writeChain(name, file, chain, settings = {}) {
   const connections = {};
   for (let i = 0; i < chain.length - 1; i++) {
     connections[chain[i]] = { main: [[{ node: chain[i + 1], type: "main", index: 0 }]] };
   }
-  writeFileSync(file, JSON.stringify({ name, nodes, connections, settings: { executionOrder: "v1" } }, null, 2) + "\n");
+  writeFileSync(file, JSON.stringify({ name, nodes, connections, settings: { executionOrder: "v1", ...settings } }, null, 2) + "\n");
   console.log(`Wrote ${file} (${nodes.length} nodes)`);
   nodes = [];
   x = 0;
@@ -124,3 +124,30 @@ const collector = [
   }),
 ];
 writeChain("GoBid GeM collector", "n8n/gobid-gem-collector.json", collector);
+
+// ---------- Daily digest: 8:00 AM India time, email each user their tenders ----------
+// Same site address and Header Auth credential as the collector.
+const digest = [
+  add({
+    name: "Every day at 8 AM",
+    type: "n8n-nodes-base.scheduleTrigger",
+    typeVersion: 1.2,
+    parameters: { rule: { interval: [{ field: "days", triggerAtHour: 8 }] } },
+  }),
+  add({
+    name: "GoBid: send daily emails",
+    type: "n8n-nodes-base.httpRequest",
+    typeVersion: 4.2,
+    retryOnFail: true,
+    maxTries: 2,
+    waitBetweenTries: 30000,
+    parameters: {
+      method: "POST",
+      url: `${SITE_URL}/api/digest/send`,
+      authentication: "genericCredentialType",
+      genericAuthType: "httpHeaderAuth",
+      options: { timeout: 280000 },
+    },
+  }),
+];
+writeChain("GoBid daily digest", "n8n/gobid-daily-digest.json", digest, { timezone: "Asia/Kolkata" });

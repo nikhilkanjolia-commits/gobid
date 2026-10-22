@@ -1,0 +1,64 @@
+{
+  "name": "GoBid daily digest",
+  "nodes": [
+    {
+      "id": "2b61433e-498a-4776-a621-f1bd62f7be1e",
+      "position": [
+        0,
+        0
+      ],
+      "name": "Every day at 8 AM",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "triggerAtHour": 8
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "807551ae-dd50-4b58-8580-4395e54a4659",
+      "position": [
+        220,
+        0
+      ],
+      "name": "GoBid: send daily emails",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 30000,
+      "parameters": {
+        "method": "POST",
+        "url": "https://YOUR-SITE.vercel.app/api/digest/send",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 280000
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Every day at 8 AM": {
+      "main": [
+        [
+          {
+            "node": "GoBid: send daily emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Kolkata"
+  }
+}
