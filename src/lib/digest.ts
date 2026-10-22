@@ -73,7 +73,7 @@ export function buildDigestEmail(opts: {
 <p style="font:14px Arial,sans-serif;color:#374151">Your daily GeM update for <b>${esc(topics)}</b>.</p>
 ${section("New tenders", fresh)}
 ${section("Closing within 3 days", closing)}
-<p style="font:14px Arial,sans-serif;margin-top:24px"><a href="${esc(opts.siteUrl)}" style="color:#1d4ed8">See all tenders</a> · <a href="${esc(opts.siteUrl)}/alerts" style="color:#1d4ed8">Change categories</a></p>
+<p style="font:14px Arial,sans-serif;margin-top:24px"><a href="${esc(opts.siteUrl)}/tenders" style="color:#1d4ed8">See all tenders</a> · <a href="${esc(opts.siteUrl)}/alerts" style="color:#1d4ed8">Change categories</a></p>
 <p style="font:12px Arial,sans-serif;color:#9ca3af;margin-top:24px">You get this because you turned on GoBid email alerts. <a href="${esc(opts.unsubscribeUrl)}" style="color:#6b7280">Unsubscribe</a></p>
 </div></body></html>`;
 
@@ -83,7 +83,7 @@ ${section("Closing within 3 days", closing)}
     `GoBid: your daily GeM update for ${topics}.`,
     fresh.length ? `\nNEW TENDERS (${fresh.length})\n${fresh.map(textRow).join("\n")}` : "",
     closing.length ? `\nCLOSING WITHIN 3 DAYS (${closing.length})\n${closing.map(textRow).join("\n")}` : "",
-    `\nAll tenders: ${opts.siteUrl}\nChange categories: ${opts.siteUrl}/alerts\nUnsubscribe: ${opts.unsubscribeUrl}`,
+    `\nAll tenders: ${opts.siteUrl}/tenders\nChange categories: ${opts.siteUrl}/alerts\nUnsubscribe: ${opts.unsubscribeUrl}`,
   ].join("\n");
 
   return { subject, html, text };

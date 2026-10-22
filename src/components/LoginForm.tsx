@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Icon, btn, card, input } from "@/components/ui";
 import { supabaseBrowser } from "@/lib/supabaseBrowser";
 
 // Sign in or sign up by email: no passwords. Step 1 emails a 6-digit code and a sign-in link;
@@ -16,7 +17,7 @@ export function LoginForm() {
   const sb = supabaseBrowser();
 
   if (!sb) {
-    return <p className="rounded border border-amber-300 bg-amber-50 p-4 text-amber-900">Sign-in isn&apos;t set up yet: NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are missing.</p>;
+    return <p className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">Sign-in isn&apos;t set up yet: NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are missing.</p>;
   }
 
   async function sendCode(e: React.FormEvent) {
@@ -61,21 +62,35 @@ export function LoginForm() {
   }
 
   return (
-    <div className="rounded-lg border bg-white p-6">
+    <div className={`${card} p-6`}>
       {step === "email" ? (
-        <form onSubmit={sendCode} className="space-y-3">
-          <label className="block text-sm font-medium" htmlFor="email">
-            Email address
-          </label>
-          <input id="email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@company.in" className="w-full rounded border px-3 py-2" required />
-          <button disabled={busy} className="w-full rounded bg-blue-700 py-2 font-semibold text-white hover:bg-blue-800 disabled:opacity-50">
-            {busy ? "Sending…" : "Send me a code"}
+        <form onSubmit={sendCode} className="space-y-4" noValidate>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-slate-800" htmlFor="email">
+              Work email
+            </label>
+            <input
+              id="email"
+              type="email"
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@company.in"
+              aria-invalid={message ? !message.ok : undefined}
+              aria-describedby={message ? "login-message" : undefined}
+              className={input}
+              required
+            />
+          </div>
+          <button disabled={busy} className={`${btn.primary} w-full`}>
+            {busy && <Icon name="spinner" />}
+            {busy ? "Sending code…" : "Email me a sign-in code"}
           </button>
-          <p className="text-xs text-gray-500">New here? The same step creates your account.</p>
+          <p className="text-xs text-slate-500">New here? The same step creates your account.</p>
         </form>
       ) : (
-        <form onSubmit={checkCode} className="space-y-3">
-          <label className="block text-sm font-medium" htmlFor="code">
+        <form onSubmit={checkCode} className="space-y-4">
+          <label className="block text-sm font-medium text-slate-800" htmlFor="code">
             6-digit code
           </label>
           <input
@@ -86,10 +101,12 @@ export function LoginForm() {
             value={code}
             onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
             placeholder="123456"
-            className="w-full rounded border px-3 py-2 text-center text-xl tracking-widest"
+            aria-describedby={message ? "login-message" : undefined}
+            className={`${input} text-center font-mono text-xl tracking-[0.4em]`}
             required
           />
-          <button disabled={busy || code.length < 6} className="w-full rounded bg-blue-700 py-2 font-semibold text-white hover:bg-blue-800 disabled:opacity-50">
+          <button disabled={busy || code.length < 6} className={`${btn.primary} w-full`}>
+            {busy && <Icon name="spinner" />}
             {busy ? "Checking…" : "Sign in"}
           </button>
           <button
@@ -99,13 +116,18 @@ export function LoginForm() {
               setCode("");
               setMessage(null);
             }}
-            className="w-full text-sm text-blue-800 hover:underline"
+            className="w-full rounded text-sm text-blue-700 hover:underline focus-visible:outline-2 focus-visible:outline-blue-600"
           >
             Use a different email, or send a new code
           </button>
         </form>
       )}
-      {message && <p className={`mt-3 rounded border p-2 text-sm ${message.ok ? "border-green-300 bg-green-50 text-green-900" : "border-red-300 bg-red-50 text-red-800"}`}>{message.text}</p>}
+      {message && (
+        <p id="login-message" role={message.ok ? "status" : "alert"} className={`mt-4 flex gap-2 rounded-lg border p-3 text-sm ${message.ok ? "border-blue-200 bg-blue-50 text-blue-900" : "border-red-200 bg-red-50 text-red-800"}`}>
+          <Icon name={message.ok ? "mail" : "alert"} className="mt-0.5 h-4 w-4 shrink-0" />
+          {message.text}
+        </p>
+      )}
     </div>
   );
 }

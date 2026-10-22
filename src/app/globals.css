@@ -1,8 +1,11 @@
 @import "tailwindcss";
 
+/* GoBid palette: white and blue. Primary #2563EB (blue-600), navy #172554 (blue-950),
+   light surface #EFF6FF (blue-50), text #111827, secondary text #64748B (slate-500),
+   borders #E2E8F0 (slate-200). */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f8fafc;
+  --foreground: #111827;
 }
 
 @theme inline {
@@ -10,6 +13,16 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+}
+
+/* Tailwind v4 draws a plain "border" in the text colour; GoBid uses light slate everywhere. */
+@layer base {
+  *,
+  ::before,
+  ::after,
+  ::backdrop {
+    border-color: var(--color-slate-200);
+  }
 }
 
 /* Tab rows scroll sideways on small screens without showing a scrollbar. */
@@ -20,8 +33,30 @@
   display: none;
 }
 
+/* Expandable rows: hide the default triangle; our own chevron turns when open. */
+details > summary {
+  list-style: none;
+}
+details > summary::-webkit-details-marker {
+  display: none;
+}
+details[open] > summary .chevron {
+  transform: rotate(180deg);
+}
+
+html {
+  scroll-padding-top: 5rem;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
 }

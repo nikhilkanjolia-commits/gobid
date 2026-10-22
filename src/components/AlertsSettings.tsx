@@ -30,18 +30,18 @@ export function AlertsSettings() {
     })();
   }, []);
 
-  if (signedIn === null) return <p className="text-gray-600">Loading…</p>;
+  if (signedIn === null) return <p className="text-slate-600">Loading…</p>;
   if (!signedIn) {
     return (
-      <div className="rounded-lg border bg-white p-6">
+      <div className="rounded-xl border border-slate-200 bg-white p-6">
         <p>Sign in with your email to get a daily update with new GeM tenders in the categories you choose.</p>
-        <Link href="/login" className="mt-4 inline-block rounded bg-blue-700 px-4 py-2 font-semibold text-white hover:bg-blue-800">
+        <Link href="/login" className="mt-4 inline-block rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white hover:bg-blue-700">
           Sign in with email
         </Link>
       </div>
     );
   }
-  if (!alerts) return <p className="text-gray-600">{note?.text ?? "Loading your alerts…"}</p>;
+  if (!alerts) return <p className="text-slate-600">{note?.text ?? "Loading your alerts…"}</p>;
 
   const categories = Array.from(new Set(all.map((k) => k.category))).sort();
   const toggle = (list: string[], v: string) => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
@@ -73,11 +73,11 @@ export function AlertsSettings() {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-lg border bg-white p-5">
+      <section className="rounded-xl border border-slate-200 bg-white p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-lg font-semibold">Daily email</h2>
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-slate-600">
               Sent to <span className="font-medium">{alerts.email}</span> at about 8:00 AM India time.
               {alerts.last_sent_at ? ` Last sent ${new Date(alerts.last_sent_at).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", dateStyle: "medium", timeStyle: "short" })}.` : ""}
             </p>
@@ -87,12 +87,12 @@ export function AlertsSettings() {
             {alerts.enabled ? "On" : "Off"}
           </label>
         </div>
-        <p className="mt-3 text-sm text-gray-600">
+        <p className="mt-3 text-sm text-slate-600">
           Each email lists tenders that are new since the last email, plus tenders closing within 3 days. If there&apos;s nothing for you that day, no email is sent.
         </p>
       </section>
 
-      <section className="rounded-lg border bg-white p-5">
+      <section className="rounded-xl border border-slate-200 bg-white p-5">
         <h2 className="text-lg font-semibold">Categories</h2>
         <div className="mt-3 flex flex-wrap gap-2">
           {categories.map((c) => (
@@ -100,7 +100,7 @@ export function AlertsSettings() {
               key={c}
               onClick={() => setAlerts({ ...alerts, categories: toggle(alerts.categories, c) })}
               aria-pressed={alerts.categories.includes(c)}
-              className={`rounded-full border px-3 py-1.5 text-sm ${alerts.categories.includes(c) ? "border-blue-700 bg-blue-700 text-white" : "bg-white hover:bg-gray-50"}`}
+              className={`rounded-full border px-3 py-1.5 text-sm ${alerts.categories.includes(c) ? "border-blue-600 bg-blue-600 text-white" : "bg-white hover:bg-slate-50"}`}
             >
               {c}
             </button>
@@ -109,14 +109,14 @@ export function AlertsSettings() {
 
         <details className="mt-4" open={alerts.keywords.length > 0}>
           <summary className="cursor-pointer text-sm font-semibold">Only specific keywords (optional)</summary>
-          <p className="mt-1 text-xs text-gray-500">Add keywords from categories you didn&apos;t pick, e.g. just “MCCB” without all of Switchgear.</p>
+          <p className="mt-1 text-xs text-slate-500">Add keywords from categories you didn&apos;t pick, e.g. just “MCCB” without all of Switchgear.</p>
           <div className="mt-2 flex flex-wrap gap-2">
             {all.map((k) => (
               <button
                 key={k.keyword}
                 onClick={() => setAlerts({ ...alerts, keywords: toggle(alerts.keywords, k.keyword) })}
                 aria-pressed={alerts.keywords.includes(k.keyword)}
-                className={`rounded-full border px-3 py-1 text-xs ${alerts.keywords.includes(k.keyword) ? "border-gray-900 bg-gray-900 text-white" : "bg-white hover:bg-gray-50"}`}
+                className={`rounded-full border px-3 py-1 text-xs ${alerts.keywords.includes(k.keyword) ? "border-blue-600 bg-blue-600 text-white" : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"}`}
               >
                 {k.keyword}
               </button>
@@ -126,7 +126,7 @@ export function AlertsSettings() {
       </section>
 
       <div className="flex flex-wrap items-center gap-3">
-        <button disabled={busy} onClick={save} className="rounded bg-blue-700 px-5 py-2 font-semibold text-white hover:bg-blue-800 disabled:opacity-50">
+        <button disabled={busy} onClick={save} className="rounded-lg bg-blue-600 px-5 py-2 font-semibold text-white hover:bg-blue-700 disabled:opacity-50">
           {busy ? "Saving…" : "Save email alerts"}
         </button>
         {note && <span className={`text-sm ${note.ok ? "text-green-800" : "text-red-700"}`}>{note.text}</span>}

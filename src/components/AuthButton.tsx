@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { btn } from "@/components/ui";
 import { supabaseBrowser } from "@/lib/supabaseBrowser";
 
 // Header corner: "Sign in", or the signed-in email with "Sign out".
@@ -20,22 +21,25 @@ export function AuthButton() {
 
   if (!email) {
     return (
-      <Link href="/login" className="rounded bg-blue-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-800">
+      <Link href="/login" className={btn.secondary.replace("py-2.5", "py-2")}>
         Sign in
       </Link>
     );
   }
   return (
     <span className="flex items-center gap-2 text-sm">
-      <span className="hidden max-w-48 truncate text-gray-600 sm:inline" title={email}>
-        {email}
+      <span className="hidden items-center gap-2 text-slate-600 sm:flex" title={email}>
+        <span className="grid h-7 w-7 place-items-center rounded-full bg-blue-50 text-xs font-semibold uppercase text-blue-700" aria-hidden="true">
+          {email[0]}
+        </span>
+        <span className="max-w-44 truncate">{email}</span>
       </span>
       <button
         onClick={async () => {
           await supabaseBrowser()?.auth.signOut();
           router.push("/");
         }}
-        className="rounded border px-3 py-1.5 hover:bg-gray-50"
+        className={btn.ghost}
       >
         Sign out
       </button>

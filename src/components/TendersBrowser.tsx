@@ -126,18 +126,18 @@ export function TendersBrowser() {
   const filters = (
     <div className="space-y-5 text-sm">
       <section>
-        <h3 className="mb-2 font-semibold text-gray-900">Category</h3>
+        <h3 className="mb-2 font-semibold text-slate-900">Category</h3>
         {(facets?.categories ?? []).map((c) => (
           <label key={c.category} className="flex cursor-pointer items-center gap-2 py-0.5">
             <input type="checkbox" checked={categories.includes(c.category)} onChange={() => update({ category: toggle(categories, c.category) })} />
             <span className="flex-1">{c.category}</span>
-            <span className="text-xs text-gray-500">{c.count}</span>
+            <span className="text-xs text-slate-500">{c.count}</span>
           </label>
         ))}
       </section>
 
       <details open={keywords.length > 0}>
-        <summary className="cursor-pointer font-semibold text-gray-900">Keywords</summary>
+        <summary className="cursor-pointer font-semibold text-slate-900">Keywords</summary>
         <div className="mt-2 max-h-56 overflow-y-auto pr-1">
           {(facets?.keywords ?? [])
             .filter((k) => !categories.length || categories.includes(k.category))
@@ -145,17 +145,17 @@ export function TendersBrowser() {
               <label key={k.keyword} className="flex cursor-pointer items-center gap-2 py-0.5">
                 <input type="checkbox" checked={keywords.includes(k.keyword)} onChange={() => update({ keyword: toggle(keywords, k.keyword) })} />
                 <span className="flex-1">{k.keyword}</span>
-                <span className="text-xs text-gray-500">{k.count}</span>
+                <span className="text-xs text-slate-500">{k.count}</span>
               </label>
             ))}
         </div>
       </details>
 
       <section>
-        <label htmlFor="ministry" className="mb-2 block font-semibold text-gray-900">
+        <label htmlFor="ministry" className="mb-2 block font-semibold text-slate-900">
           Ministry
         </label>
-        <select id="ministry" value={ministry} onChange={(e) => update({ ministry: e.target.value || null })} className="w-full rounded border bg-white px-2 py-1.5">
+        <select id="ministry" value={ministry} onChange={(e) => update({ ministry: e.target.value || null })} className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5">
           <option value="">Any ministry</option>
           {ministry && !facets?.ministries.some((m) => m.ministry === ministry) && <option value={ministry}>{ministry}</option>}
           {(facets?.ministries ?? []).map((m) => (
@@ -167,7 +167,7 @@ export function TendersBrowser() {
       </section>
 
       <section>
-        <h3 className="mb-2 font-semibold text-gray-900">Type</h3>
+        <h3 className="mb-2 font-semibold text-slate-900">Type</h3>
         {[
           ["", "All", (facets?.kinds.BID ?? 0) + (facets?.kinds.RA ?? 0)],
           ["BID", "Bids", facets?.kinds.BID],
@@ -176,37 +176,37 @@ export function TendersBrowser() {
           <label key={String(value)} className="flex cursor-pointer items-center gap-2 py-0.5">
             <input type="radio" name="kind" checked={kind === value} onChange={() => update({ kind: (value as string) || null })} />
             <span className="flex-1">{label}</span>
-            <span className="text-xs text-gray-500">{count ?? ""}</span>
+            <span className="text-xs text-slate-500">{count ?? ""}</span>
           </label>
         ))}
         <label className="mt-2 flex cursor-pointer items-center gap-2">
           <input type="checkbox" checked={highValue} onChange={() => update({ high_value: highValue ? null : "true" })} />
           <span className="flex-1">High-value bids only</span>
-          <span className="text-xs text-gray-500">{facets?.high_value ?? ""}</span>
+          <span className="text-xs text-slate-500">{facets?.high_value ?? ""}</span>
         </label>
       </section>
 
       <section>
-        <h3 className="mb-2 font-semibold text-gray-900">Closing date</h3>
+        <h3 className="mb-2 font-semibold text-slate-900">Closing date</h3>
         <div className="grid grid-cols-2 gap-2">
-          <label className="text-xs text-gray-600">
+          <label className="text-xs text-slate-600">
             From
-            <input type="date" value={closingFrom} onChange={(e) => update({ closing_from: e.target.value || null })} className="mt-1 w-full rounded border px-2 py-1 text-sm" />
+            <input type="date" value={closingFrom} onChange={(e) => update({ closing_from: e.target.value || null })} className="mt-1 w-full rounded-lg border border-slate-200 px-2 py-1 text-sm" />
           </label>
-          <label className="text-xs text-gray-600">
+          <label className="text-xs text-slate-600">
             To
-            <input type="date" value={closingTo} onChange={(e) => update({ closing_to: e.target.value || null })} className="mt-1 w-full rounded border px-2 py-1 text-sm" />
+            <input type="date" value={closingTo} onChange={(e) => update({ closing_to: e.target.value || null })} className="mt-1 w-full rounded-lg border border-slate-200 px-2 py-1 text-sm" />
           </label>
         </div>
       </section>
 
       <div className="flex flex-col gap-2 border-t pt-4">
-        <button onClick={saveAsPrefs} className="rounded bg-gray-900 px-3 py-2 font-medium text-white hover:bg-gray-700">
+        <button onClick={saveAsPrefs} className="rounded-lg bg-blue-600 px-3 py-2 font-medium text-white hover:bg-blue-700">
           Save as my preferences
         </button>
         <button
           onClick={() => router.replace(`${pathname}?${new URLSearchParams({ tab })}`, { scroll: false })}
-          className="rounded border px-3 py-2 hover:bg-gray-50"
+          className="rounded-lg border border-slate-200 px-3 py-2 hover:bg-slate-50"
         >
           Clear all filters
         </button>
@@ -215,11 +215,11 @@ export function TendersBrowser() {
   );
 
   return (
-    <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-8">
+    <main className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
-          <h1 className="text-2xl font-bold">GeM tenders</h1>
-          <p className="text-sm text-gray-600">
+          <h1 className="text-2xl font-semibold tracking-tight text-blue-950 sm:text-3xl">GeM tenders</h1>
+          <p className="mt-1 text-sm text-slate-600">
             Electrical and solar bids from the Government e-Marketplace, refreshed every hour
             {facets?.last_run ? ` · last checked ${istDate(facets.last_run.ran_at)}` : ""}.
           </p>
@@ -239,10 +239,10 @@ export function TendersBrowser() {
           name="q"
           defaultValue={q}
           placeholder="Search items, ministry, department or bid number (e.g. MCCB 63A, solar, GEM/2026/B/…)"
-          className="min-w-0 flex-1 rounded border bg-white px-3 py-2"
+          className="min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20"
           aria-label="Search tenders"
         />
-        <button className="rounded bg-blue-700 px-5 py-2 font-semibold text-white hover:bg-blue-800">Search</button>
+        <button className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">Search</button>
       </form>
 
       <nav className="no-scrollbar mt-4 flex gap-1 overflow-x-auto border-b" aria-label="Tender status">
@@ -252,29 +252,29 @@ export function TendersBrowser() {
             onClick={() => update({ tab: t === "live" ? null : t })}
             aria-current={tab === t ? "page" : undefined}
             className={`-mb-px whitespace-nowrap border-b-2 px-4 py-2 text-sm font-medium ${
-              tab === t ? "border-blue-700 text-blue-800" : "border-transparent text-gray-600 hover:text-gray-900"
+              tab === t ? "border-blue-600 text-blue-700" : "border-transparent text-slate-600 hover:text-slate-900"
             }`}
           >
             {TAB_LABELS[t]}
-            {facets && <span className="ml-1.5 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-700">{facets.tabs[t]}</span>}
+            {facets && <span className={`ml-1.5 rounded-full px-2 py-0.5 text-xs tabular-nums ${tab === t ? "bg-blue-50 text-blue-700" : "bg-slate-100 text-slate-600"}`}>{facets.tabs[t]}</span>}
           </button>
         ))}
       </nav>
 
       <div className="mt-4 flex flex-col gap-6 lg:flex-row">
         <aside className="lg:w-72 lg:shrink-0">
-          <button onClick={() => setShowFilters((s) => !s)} className="w-full rounded border bg-white px-3 py-2 text-sm font-medium lg:hidden">
+          <button onClick={() => setShowFilters((s) => !s)} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium lg:hidden">
             {showFilters ? "Hide filters" : `Filters${chips.length ? ` (${chips.length})` : ""}`}
           </button>
-          <div className={`${showFilters ? "mt-3 block" : "hidden"} rounded-lg border bg-white p-4 lg:sticky lg:top-20 lg:mt-0 lg:block`}>{filters}</div>
+          <div className={`${showFilters ? "mt-3 block" : "hidden"} rounded-xl border border-slate-200 bg-white p-4 lg:sticky lg:top-20 lg:mt-0 lg:block`}>{filters}</div>
         </aside>
 
         <section className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="text-sm text-gray-700">{loading ? "Loading…" : results ? `${results.total} tender${results.total === 1 ? "" : "s"}` : ""}</p>
-            <label className="ml-auto flex items-center gap-2 text-sm text-gray-700">
+            <p className="text-sm text-slate-700">{loading ? "Loading…" : results ? `${results.total} tender${results.total === 1 ? "" : "s"}` : ""}</p>
+            <label className="ml-auto flex items-center gap-2 text-sm text-slate-700">
               Sort
-              <select value={sort} onChange={(e) => update({ sort: e.target.value === "publish_date_desc" ? null : e.target.value })} className="rounded border bg-white px-2 py-1">
+              <select value={sort} onChange={(e) => update({ sort: e.target.value === "publish_date_desc" ? null : e.target.value })} className="rounded-lg border border-slate-200 bg-white px-2 py-1">
                 {Object.entries(SORT_LABELS).map(([v, l]) => (
                   <option key={v} value={v}>
                     {l}
@@ -287,36 +287,37 @@ export function TendersBrowser() {
           {chips.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-2">
               {chips.map((c) => (
-                <button key={c.label} onClick={() => update(c.clear)} className="rounded-full bg-blue-50 px-3 py-1 text-xs text-blue-900 hover:bg-blue-100">
+                <button key={c.label} onClick={() => update(c.clear)} className="rounded-md border border-blue-100 bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-800 hover:bg-blue-100">
                   {c.label} ✕
                 </button>
               ))}
             </div>
           )}
 
-          {notice && <p className="mt-3 rounded border border-green-300 bg-green-50 p-2 text-sm text-green-900">{notice}</p>}
-          {error && <p className="mt-3 rounded border border-red-300 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
+          {notice && <p className="mt-3 rounded-lg border border-slate-200 border-green-300 bg-green-50 p-2 text-sm text-green-900">{notice}</p>}
+          {error && <p className="mt-3 rounded-lg border border-slate-200 border-red-300 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
 
           <div className={`mt-3 space-y-3 ${loading ? "opacity-60" : ""}`}>
             {results?.results.map((t) => (
               <TenderCard key={t.bid_number} t={t} />
             ))}
             {!loading && results && results.total === 0 && (
-              <p className="rounded-lg border bg-white p-6 text-center text-gray-600">
-                No tenders match. Try another tab, fewer filters, or add keywords under Settings.
-              </p>
+              <div className="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center">
+                <p className="font-medium text-slate-900">No tenders match these filters</p>
+                <p className="mt-1 text-sm text-slate-600">Try another tab, remove a filter, or add keywords under Settings.</p>
+              </div>
             )}
           </div>
 
           {results && results.total > pageSize && (
             <div className="mt-4 flex items-center justify-center gap-3 text-sm">
-              <button disabled={page <= 1} onClick={() => update({ page: String(page - 1) }, true)} className="rounded border bg-white px-3 py-1.5 disabled:opacity-40">
+              <button disabled={page <= 1} onClick={() => update({ page: String(page - 1) }, true)} className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 disabled:opacity-40">
                 ← Previous
               </button>
               <span>
                 Page {page} of {totalPages}
               </span>
-              <button disabled={page >= totalPages} onClick={() => update({ page: String(page + 1) }, true)} className="rounded border bg-white px-3 py-1.5 disabled:opacity-40">
+              <button disabled={page >= totalPages} onClick={() => update({ page: String(page + 1) }, true)} className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 disabled:opacity-40">
                 Next →
               </button>
             </div>
