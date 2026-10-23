@@ -6,14 +6,26 @@ const MAX_BYTES = 25 * 1024 * 1024;
 const USER_AGENT = "GoBid/1.0 (tender research; reads public bid documents on request)";
 
 export type BidFiles = { documentUrl: string; pageCount: number; files: GemFile[]; checkedAt: string };
+export type BidFilesResult = ({ ok: true } & BidFiles) | { ok: false; error: string };
 
 // Reads ONE public GeM bid document (the PDF GeM itself links from "All Bids"; allowed by
 // bidplus robots.txt) and lists the files it links to. The attachments themselves are never
-// downloaded here: the user's browser opens them from GeM. Cached for an hour per document,
-// so repeated views don't hit GeM again.
-export async function readBidFiles(documentUrl: string): Promise<BidFiles> {
+// downloaded here: the user's browser opens them from GeM. A good answer is cached for an
+// hour per document, so repeated views don't hit GeM again; a failure only for a minute.
+// Failures are returned, not thrown: a thrown error loses its message inside a cache.
+export async function readBidFiles(documentUrl: string): Promise<BidFilesResult> {
   "use cache";
-  cacheLife("hours");
+  try {
+    const result = await fetchAndRead(documentUrl);
+    cacheLife("hours");
+    return { ok: true, ...result };
+  } catch (e) {
+    cacheLife("minutes");
+    return { ok: false, error: (e as Error).message || "Unknown error" };
+  }
+}
+
+async function fetchAndRead(documentUrl: string): Promise<BidFiles> {
   if (!isReadableBidDocument(documentUrl)) throw new Error("Not a GeM bid document link.");
 
   const res = await fetch(documentUrl, {
@@ -28,7 +40,12 @@ export async function readBidFiles(documentUrl: string): Promise<BidFiles> {
   const data = new Uint8Array(await res.arrayBuffer());
   if (data.byteLength > MAX_BYTES) throw new Error("The bid document is too large to read.");
 
-  const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+  let pdfjs: typeof import("pdfjs-dist/legacy/build/pdf.mjs");
+  try {
+    pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+  } catch (e) {
+    throw new Error(`PDF reader failed to load: ${(e as Error).message}`);
+  }
   const task = pdfjs.getDocument({ data, useSystemFonts: true });
   const doc = await task.promise;
   const links: { url: string; page: number }[] = [];

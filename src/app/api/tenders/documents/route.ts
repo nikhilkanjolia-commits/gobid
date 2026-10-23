@@ -26,9 +26,9 @@ export async function GET(req: Request) {
     // Some reverse auctions only have a schedule page on GeM, not a PDF.
     return Response.json({ bid, documentUrl: tender.document_url, pageCount: null, files: [], note: "GeM has no bid PDF for this one; open it on GeM." });
   }
-  try {
-    return Response.json({ bid, ...(await readBidFiles(tender.document_url!)) });
-  } catch (e) {
-    return Response.json({ error: `Couldn't read the bid document from GeM: ${(e as Error).message}`, documentUrl: tender.document_url }, { status: 502 });
+  const result = await readBidFiles(tender.document_url!);
+  if (!result.ok) {
+    return Response.json({ error: `Couldn't read the bid document from GeM: ${result.error}`, documentUrl: tender.document_url }, { status: 502 });
   }
+  return Response.json({ bid, documentUrl: result.documentUrl, pageCount: result.pageCount, files: result.files, checkedAt: result.checkedAt });
 }

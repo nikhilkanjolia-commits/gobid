@@ -8,6 +8,8 @@ const nextConfig: NextConfig = {
     // The home page shows the demo report, built by the same rules.
     "/": ["./n8n/code/**/*", "./public/samples/**/*"],
     "/api/gem/collect": ["./n8n/code/gem.js"],
+    // pdf.js loads its worker file at run time, so file tracing can miss it.
+    "/api/tenders/documents": ["./node_modules/pdfjs-dist/legacy/build/**/*"],
   },
   partialPrefetching: true,
   // Bid documents are read on the server with pdf.js (/api/tenders/documents).
