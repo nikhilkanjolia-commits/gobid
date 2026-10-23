@@ -13,7 +13,7 @@ export function istDate(iso: string | null, withTime = true) {
   });
 }
 
-function closingBadge(endsAt: string | null) {
+export function closingBadge(endsAt: string | null) {
   if (!endsAt) return null;
   const ms = new Date(endsAt).getTime() - Date.now();
   if (ms <= 0) return { text: "Closed", cls: "bg-slate-200 text-slate-700" };
@@ -25,6 +25,7 @@ function closingBadge(endsAt: string | null) {
 
 export function TenderCard({ t }: { t: Tender }) {
   const badge = closingBadge(t.ends_at);
+  const detail = `/tenders/detail?${new URLSearchParams({ bid: t.bid_number })}`;
   const analyze = `/analyze?${new URLSearchParams({ bid: t.bid_number, ...(t.document_url ? { doc: t.document_url } : {}) })}`;
   return (
     <article className="rounded-xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-colors hover:border-slate-300">
@@ -38,7 +39,9 @@ export function TenderCard({ t }: { t: Tender }) {
       </div>
 
       <h3 className="mt-2 line-clamp-2 text-base font-semibold text-slate-900" title={t.items}>
-        {t.items || "Items not listed"}
+        <Link href={detail} className="rounded hover:text-blue-700 hover:underline focus-visible:outline-2 focus-visible:outline-blue-600">
+          {t.items || "Items not listed"}
+        </Link>
       </h3>
       <p className="mt-1 text-sm text-slate-600">
         {[t.ministry, t.department && t.department !== "NA" ? t.department : null].filter(Boolean).join(" › ") || "Ministry not listed"}
@@ -70,10 +73,13 @@ export function TenderCard({ t }: { t: Tender }) {
             {k}
           </span>
         ))}
-        <span className="ml-auto flex gap-2">
+        <span className="ml-auto flex flex-wrap gap-2">
+          <Link href={detail} className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm hover:bg-slate-50">
+            Bid documents
+          </Link>
           {t.document_url && (
             <a href={t.document_url} target="_blank" rel="noreferrer" className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm hover:bg-slate-50">
-              View on GeM ↗
+              Open on GeM ↗
             </a>
           )}
           <Link href={analyze} className="rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700">

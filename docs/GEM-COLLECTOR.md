@@ -18,7 +18,8 @@ your site    GET /api/tenders?q=…  →  search_tenders() in Supabase  →  JSO
 - **Search API:** [`src/app/api/tenders/route.ts`](../src/app/api/tenders/route.ts).
 
 ## Staying within GeM's rules
-- **Public pages only.** GoBid reads only the public "All Bids" search, the same request GeM's own page makes. It never logs in, never touches a captcha, and never downloads bid documents: `document_url` is a link for *you* to open.
+- **Public pages only.** GoBid reads only the public "All Bids" search, the same request GeM's own page makes. It never logs in and never touches a captcha. The collector itself never downloads bid documents.
+- **Bid documents, on request only.** When a user opens a tender (`/tenders/detail?bid=…`), `GET /api/tenders/documents` reads that one bid PDF from `bidplus.gem.gov.in/showbidDocument/…` (allowed by robots.txt; the link comes from the database, never the request) and lists the files it links to: specification, BOQ CSV, buyer’s ATC, GeM terms. The result is cached for an hour. The attachments themselves are opened by the user’s browser straight from GeM; GoBid never fetches, stores or re-hosts them.
 - **Allowed by robots.txt.** Checked on 22 Oct 2026, `bidplus.gem.gov.in/robots.txt` only disallows `/resources/` and a few bank-guarantee pages. Check it again before increasing volume.
 - **Light on GeM.** It runs hourly, one request at a time, 2 s apart, with a user-agent that names GoBid.
 - **Not legal advice.** GeM's General Terms (GTC 3.0, s. 23(e)) forbid access to features "not specifically authorised". Have them reviewed before collecting at scale or selling the data.

@@ -10,6 +10,8 @@ const nextConfig: NextConfig = {
     "/api/gem/collect": ["./n8n/code/gem.js"],
   },
   partialPrefetching: true,
+  // Bid documents are read on the server with pdf.js (/api/tenders/documents).
+  serverExternalPackages: ["pdfjs-dist"],
   // The tender list used to live at "/": send old bookmarks with filters to its new address.
   async redirects() {
     return ["tab", "q", "category", "keyword", "ministry", "sort"].map((key) => ({
