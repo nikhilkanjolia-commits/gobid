@@ -2,9 +2,9 @@ import "server-only";
 
 type GeminiRequest = { model: string; body: unknown };
 
-const TRIES = 4;
+const DEFAULT_TRIES = 4;
 // Longer waits mean the free daily allowance is used up; fail fast with a clear message.
-const MAX_WAIT_MS = 60_000;
+const DEFAULT_MAX_WAIT_MS = 60_000;
 
 // How long Gemini asks us to wait ("retryDelay": "6s"), or a growing default.
 function waitMs(detail: string, attempt: number) {
@@ -15,13 +15,22 @@ function waitMs(detail: string, attempt: number) {
 // Calls Gemini, retrying when it's busy (503) or rate-limited (429). The free tier allows
 // 5 requests a minute and one analysis makes 4, so a short wait is normal.
 // GEMINI_MODEL in .env.local overrides the model (each model has its own free allowance).
-export async function callGemini(req: GeminiRequest, apiKey: string, step: string): Promise<unknown> {
-  const model = process.env.GEMINI_MODEL?.trim() || req.model;
+// opts lets a quick caller (the chat assistant) give up sooner instead of waiting up to a minute.
+export async function callGemini(
+  req: GeminiRequest,
+  apiKey: string,
+  step: string,
+  opts: { tries?: number; maxWaitMs?: number; exactModel?: boolean; timeoutMs?: number } = {},
+): Promise<unknown> {
+  const model = (!opts.exactModel && process.env.GEMINI_MODEL?.trim()) || req.model;
+  const TRIES = opts.tries ?? DEFAULT_TRIES;
+  const MAX_WAIT_MS = opts.maxWaitMs ?? DEFAULT_MAX_WAIT_MS;
   for (let attempt = 1; ; attempt++) {
     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
       method: "POST",
       headers: { "content-type": "application/json", "x-goog-api-key": apiKey },
       body: JSON.stringify(req.body),
+      ...(opts.timeoutMs ? { signal: AbortSignal.timeout(opts.timeoutMs) } : {}),
     });
     if (res.ok) return res.json();
     const detail = await res.text().catch(() => "");

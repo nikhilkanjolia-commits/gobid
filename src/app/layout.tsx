@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
+import { Assistant } from "@/components/Assistant";
 import { AuthButton } from "@/components/AuthButton";
 import { NavTabs } from "@/components/NavTabs";
 import { Wordmark } from "@/components/ui";
@@ -46,7 +47,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           {children}
         </div>
         <footer className="border-t border-slate-200 bg-white">
-          <div className="mx-auto flex w-full max-w-7xl flex-wrap items-center justify-between gap-2 px-4 py-5 text-xs text-slate-500 sm:px-6 lg:px-8">
+          <div className="mx-auto flex w-full max-w-7xl flex-wrap items-center justify-between gap-2 px-4 pb-24 pt-5 text-xs text-slate-500 sm:px-6 lg:px-8">
             <span>
               GoBid · AI reads, rules decide, you approve. ·{" "}
               <Link href="/contact" className="text-blue-700 hover:underline">
@@ -56,6 +57,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             <span>Not affiliated with or approved by GeM. Always verify results against the tender before you bid.</span>
           </div>
         </footer>
+        <Assistant />
       </body>
     </html>
   );
