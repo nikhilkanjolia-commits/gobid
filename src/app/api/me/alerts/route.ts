@@ -1,9 +1,13 @@
+import { after } from "next/server";
 import { z } from "zod";
 import { getAuthUser } from "@/lib/authUser";
+import { siteUrlFrom } from "@/lib/mailer";
 import { callSupabaseFunction } from "@/lib/supabase";
+import { sendWelcomeOnce } from "@/lib/welcome";
 
 // The signed-in user's daily email alert (header Authorization: Bearer <Supabase token>).
-//   GET  their choices (or defaults if they haven't saved yet)
+//   GET  their choices (or defaults if they haven't saved yet). The first time a user gets
+//        here (right after their first sign-in), the welcome email goes out, once.
 //   PUT  {categories, keywords, enabled}  save them
 type Alerts = { email: string; categories: string[]; keywords: string[]; enabled: boolean; last_sent_at: string | null };
 
@@ -12,6 +16,8 @@ const notSignedIn = () => Response.json({ error: "Please sign in." }, { status: 
 export async function GET(req: Request) {
   const user = await getAuthUser(req);
   if (!user) return notSignedIn();
+  const siteUrl = siteUrlFrom(req);
+  after(() => sendWelcomeOnce(user, siteUrl));
   try {
     const rows = await callSupabaseFunction<Alerts[]>("get_user_alerts", { p_user_id: user.id });
     if (rows === null) return Response.json({ error: "Supabase isn't set up yet." }, { status: 503 });

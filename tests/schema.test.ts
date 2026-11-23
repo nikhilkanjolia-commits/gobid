@@ -23,6 +23,7 @@ beforeAll(async () => {
   // Supabase provides auth.users; a minimal stand-in for the tests.
   await db.exec("create schema auth; create table auth.users (id uuid primary key, email text);");
   await db.exec(readFileSync("supabase/003_user_alerts.sql", "utf8"));
+  await db.exec(readFileSync("supabase/004_emails_contact.sql", "utf8"));
 }, 60_000);
 
 async function save(rows: Record<string, unknown>[]) {
@@ -216,5 +217,54 @@ describe("supabase/003_user_alerts.sql", () => {
   it("deletes a user's alerts when their account is deleted", async () => {
     await db.query("delete from auth.users where id = $1", [U2]);
     expect((await db.query("select * from user_alerts where user_id = $1", [U2])).rows).toEqual([]);
+  });
+});
+
+describe("supabase/004_emails_contact.sql", () => {
+  const U3 = "33333333-3333-3333-3333-333333333333";
+
+  it("claims a one-time email once, and can give the claim back", async () => {
+    await db.query("insert into auth.users (id, email) values ($1, 'c@x.in')", [U3]);
+    const claim = async () => (await db.query<{ ok: boolean }>("select claim_email($1, 'welcome') as ok", [U3])).rows[0].ok;
+    expect(await claim()).toBe(true);
+    expect(await claim()).toBe(false);
+    await db.query("select release_email($1, 'welcome')", [U3]);
+    expect(await claim()).toBe(true);
+  });
+
+  it("reminds each closing-soon bid only once per user", async () => {
+    const closing = async () =>
+      (await db.query<{ bid_number: string }>(
+        "select bid_number from digest_tenders_for($1, array['Switchgear'], array[]::text[], now() - interval '1 day') where section = 'closing_soon'",
+        [U3],
+      )).rows.map((r) => r.bid_number);
+    const first = await closing();
+    expect(first).toHaveLength(2);
+    await db.query("select mark_reminders_sent($1, $2)", [U3, [first[0]]]);
+    expect(await closing()).toEqual([first[1]]);
+    // New bids are not affected by reminders.
+    const fresh = await db.query("select * from digest_tenders_for($1, array['Switchgear'], array[]::text[], now() - interval '1 day') where section = 'new'", [U3]);
+    expect(fresh.rows).toHaveLength(3);
+  });
+
+  it("saves contact messages and limits each sender to 3 an hour", async () => {
+    const save = async (email: string, ip: string | null) =>
+      (await db.query<{ id: number | null }>("select save_contact_message('Ravi', $1, '', 'Hello from Kota, testing.', $2) as id", [email, ip])).rows[0].id;
+    expect(await save("r@x.in", "ip1")).not.toBeNull();
+    expect(await save("r@x.in", "ip1")).not.toBeNull();
+    expect(await save("R@X.in", "ip2")).not.toBeNull();
+    expect(await save("r@x.in", "ip3")).toBeNull(); // same email, 4th in the hour
+    for (const e of ["a1@x.in", "a2@x.in", "a3@x.in"]) expect(await save(e, "ip7")).not.toBeNull();
+    expect(await save("a4@x.in", "ip7")).toBeNull(); // same IP, 4th in the hour
+    expect(await save("new@x.in", "ip9")).not.toBeNull();
+    const row = (await db.query<{ company: string | null }>("select company from contact_messages order by id limit 1")).rows[0];
+    expect(row.company).toBeNull();
+  });
+
+  it("keeps email and contact tables closed to browser keys", async () => {
+    for (const fn of ["claim_email(uuid,text,text)", "save_contact_message(text,text,text,text,text)"]) {
+      const r = await db.query<{ ok: boolean }>(`select has_function_privilege('anon', 'public.${fn}', 'execute') as ok`);
+      expect(r.rows[0].ok).toBe(false);
+    }
   });
 });
